@@ -2,5 +2,8 @@
   "dependencies": {
     "react-konva": "^19.2.3",
     "react-zoom-pan-pinch": "^4.0.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
