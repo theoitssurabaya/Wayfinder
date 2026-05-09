@@ -30,9 +30,7 @@ def sinkronisasi_peta(data):
     waypoint_graph.RUANGAN_GRID.clear()
     
     # Bersihkan GRID_MAP ke 0 semua (Reset area)
-    for y in range(waypoint_graph.GRID_HEIGHT):
-        for x in range(waypoint_graph.GRID_WIDTH):
-            waypoint_graph.GRID_MAP[y][x] = 0
+    waypoint_graph.GRID_MAP.clear()
 
     for item in data:
         # Gunakan id_dokumen (contoh: "R016") sebagai penanda unik
@@ -64,6 +62,8 @@ def sinkronisasi_peta(data):
                 door_x = gx + gw - 1
                 door_y = gy + door_offset
             
+            floor = item.get("floor", "Lantai 1")
+            
             # 1. Update Memori A* (Database Sementara untuk Algoritma Theo)
             waypoint_graph.RUANGAN_GRID[room_id] = {
                 "x": gx,
@@ -72,8 +72,12 @@ def sinkronisasi_peta(data):
                 "h": gh,
                 "door_x": door_x,
                 "door_y": door_y,
-                "name": room_name # Tetap simpan nama untuk kebutuhan debugging
+                "name": room_name,
+                "floor": floor
             }
+            
+            # Ambil grid untuk lantai ini
+            grid = waypoint_graph.get_grid_map(floor)
             
             # Tandai area ruangan/kiosk sebagai rintangan (1)
             for dy in range(gh):
@@ -81,7 +85,7 @@ def sinkronisasi_peta(data):
                     ny = gy + dy
                     nx = gx + dx
                     if 0 <= ny < waypoint_graph.GRID_HEIGHT and 0 <= nx < waypoint_graph.GRID_WIDTH:
-                        waypoint_graph.GRID_MAP[ny][nx] = 1
+                        grid[ny][nx] = 1
             
             # 2. Update Memori Kamus NLP
             kata_kunci = item.get("keywords", [])

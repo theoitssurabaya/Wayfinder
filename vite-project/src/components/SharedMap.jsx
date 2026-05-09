@@ -89,7 +89,8 @@ export default function SharedMap({ path = [], currentFloor = "Lantai 1" }) {
     return () => anim.stop();
   }, [path]);
 
-  const pathPoints = path.flatMap((point) => [
+  const filteredPath = path.filter(p => !p.floor || p.floor === currentFloor);
+  const pathPoints = filteredPath.flatMap((point) => [
     (point.x || 0) * GRID_SIZE + GRID_SIZE / 2,
     (point.y || 0) * GRID_SIZE + GRID_SIZE / 2
   ]);

@@ -7,7 +7,12 @@ import math
 # Peta rumah sakit ukurannya luas, kita siapkan matriks 100x100
 GRID_WIDTH = 100
 GRID_HEIGHT = 100
-GRID_MAP = [[0 for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+GRID_MAP = {} # Dictionary: { "Lantai 1": [[0...]], "Lantai 2": [[0...]] }
+
+def get_grid_map(floor):
+    if floor not in GRID_MAP:
+        GRID_MAP[floor] = [[0 for _ in range(GRID_WIDTH)] for _ in range(GRID_HEIGHT)]
+    return GRID_MAP[floor]
 
 # Mapping ID Ruangan ke letak Grid (X = Kolom, Y = Baris)
 RUANGAN_GRID = {} # Ini diisi dinamis oleh main.py / Firebase
