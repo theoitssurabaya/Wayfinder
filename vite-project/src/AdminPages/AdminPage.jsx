@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { collection, onSnapshot } from "firebase/firestore";
+import { db } from "../firebase";
 import SharedMap from "../components/SharedMap";
 import "./Admin.css";
 
@@ -33,39 +35,158 @@ const LoginIcon = () => (
   </svg>
 );
 
-// ── Sample data ──────────────────────────────────────────
-const LOCATIONS = ["", "Building A", "Building B", "Building C", "Lobby"];
-const FLOORS    = ["", "Lantai 1", "Lantai 2", "Lantai 3", "Lantai 4"];
+// Konstanta statis LOCATIONS dan FLOORS dihapus agar sistem dinamis
 
 export default function App() {
   const navigate = useNavigate();
   const [search,      setSearch]      = useState("");
   const [outputText,  setOutputText]  = useState("");
-  const [location,    setLocation]    = useState("");
+  const [location,    setLocation]    = useState(""); // Menyimpan ID Kiosk
   const [floor,       setFloor]       = useState("Lantai 1");
+  const [floors,      setFloors]      = useState(["Lantai 1"]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [kiosks,      setKiosks]      = useState([]);
+  const [pathData,    setPathData]    = useState([]);
+  const [targetRoomName, setTargetRoomName] = useState("");
 
-  const handleSearchKey = (e) => {
-    if (e.key === "Enter" && search.trim()) {
-      setOutputText(`Destination: ${search.trim()}\nLocation: ${location || "—"}\nFloor: ${floor || "—"}`);
+  // Fetch kiosk data DAN deteksi lantai secara dinamis
+  useEffect(() => {
+    // 1. Listen ke Kiosks
+    const unsubscribeKiosks = onSnapshot(collection(db, "Kiosks"), (kioskSnap) => {
+      const loadedKiosks = [];
+      const foundFloors = new Set(["Lantai 1"]);
+
+      kioskSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        loadedKiosks.push({ id: docSnap.id, ...data });
+        if (data.floor) foundFloors.add(data.floor);
+      });
+      setKiosks(loadedKiosks);
+      
+      setFloors(prev => {
+        const combined = new Set([...prev, ...foundFloors]);
+        return Array.from(combined).sort();
+      });
+    });
+
+    // 2. Listen ke Rooms
+    const unsubscribeRooms = onSnapshot(collection(db, "Rooms"), (roomSnap) => {
+      const foundFloors = new Set();
+      roomSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.floor) foundFloors.add(data.floor);
+      });
+
+      setFloors(prev => {
+        const combined = new Set([...prev, ...foundFloors]);
+        return Array.from(combined).sort();
+      });
+    });
+
+    return () => {
+      unsubscribeKiosks();
+      unsubscribeRooms();
+    };
+  }, []);
+
+  // Fungsi Text-to-Speech (Membacakan Teks per langkah)
+  const speakSteps = (langkahNavigasi) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      
+      langkahNavigasi.forEach((step) => {
+        const utterance = new SpeechSynthesisUtterance(step.teks);
+        utterance.lang = 'id-ID';
+        utterance.rate = 1.15;
+        utterance.onstart = () => {
+          if (step.floor) {
+            setFloor(step.floor);
+          }
+        };
+        window.speechSynthesis.speak(utterance);
+      });
     }
   };
 
-  // Fungsi untuk membuka modal konfirmasi logout
-  const openLogoutConfirm = () => {
-    setIsConfirmOpen(true);
+  // Fungsi pencarian dan navigasi (API Call ke Backend Theo)
+  const executeSearch = async (overrideLocation) => {
+    const searchLocation = typeof overrideLocation === 'string' ? overrideLocation : location;
+    
+    if (!search.trim()) return;
+    
+    if (!searchLocation) {
+      setOutputText("Silakan pilih Kiosk awal terlebih dahulu.");
+      return;
+    }
+
+    setOutputText("Mencari rute...");
+    try {
+      const response = await fetch("http://127.0.0.1:8000/api/route", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          start_node_id: searchLocation,
+          teks_pencarian: search.trim()
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        setOutputText(`Gagal: ${data.detail || "Terjadi kesalahan"}`);
+        setPathData([]);
+      } else {
+        const roomName = data.data_target.nama_ruangan;
+        setTargetRoomName(roomName);
+        
+        setPathData(data.jalur_koordinat);
+        
+        let allText = "Teks navigasi tidak tersedia.";
+        if (data.langkah_navigasi && data.langkah_navigasi.length > 0) {
+            allText = data.langkah_navigasi.map(l => l.teks).join("\n\n");
+            
+            const finalText = `Rute ditemukan!\nMenuju: ${roomName}\n\n${allText}`;
+            setOutputText(finalText);
+            
+            speakSteps(data.langkah_navigasi);
+        } else {
+            const fallbackText = `Rute ditemukan menuju ${roomName}`;
+            setOutputText(fallbackText);
+            
+            if (data.jalur_koordinat && data.jalur_koordinat.length > 0 && data.jalur_koordinat[0].floor) {
+                setFloor(data.jalur_koordinat[0].floor);
+            }
+            
+            if ('speechSynthesis' in window) {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(fallbackText);
+              utterance.lang = 'id-ID';
+              utterance.rate = 1.15;
+              window.speechSynthesis.speak(utterance);
+            }
+        }
+      }
+    } catch (error) {
+      setOutputText(`Error: Tidak dapat terhubung ke server (${error.message})`);
+      setPathData([]);
+    }
   };
 
-  // Fungsi untuk handle "Iya" - logout ke main page
+  const handleSearchKey = (e) => {
+    if (e.key === "Enter") {
+      executeSearch();
+    }
+  };
+
+  // Fungsi navigasi khusus Admin
+  const openLogoutConfirm = () => setIsConfirmOpen(true);
   const handleLogoutYes = () => {
     setIsConfirmOpen(false);
     navigate("/");
   };
-
-  // Fungsi untuk handle "Tidak" - tetap di admin page
-  const handleLogoutNo = () => {
-    setIsConfirmOpen(false);
-  };
+  const handleLogoutNo = () => setIsConfirmOpen(false);
 
   return (
     <div>
@@ -108,25 +229,36 @@ export default function App() {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleSearchKey}
             />
-            <SearchIcon />
+            <div style={{ cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => executeSearch()}>
+              <SearchIcon />
+            </div>
           </div>
 
           <textarea
             className="destination-output"
             placeholder="Destination output text"
             value={outputText}
-            onChange={(e) => setOutputText(e.target.value)}
+            readOnly
+            style={{ minHeight: "100px" }}
           />
 
           <div className="dropdown-wrapper">
             <select
               className="dropdown-select"
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => {
+                const newLocation = e.target.value;
+                setLocation(newLocation);
+                if (search.trim()) {
+                  executeSearch(newLocation);
+                }
+              }}
             >
-              <option value="" disabled>Location</option>
-              {LOCATIONS.filter(Boolean).map((loc) => (
-                <option key={loc} value={loc}>{loc}</option>
+              <option value="" disabled>Pilih Kiosk Awal</option>
+              {kiosks.map((kiosk) => (
+                <option key={kiosk.id} value={kiosk.id}>
+                  {kiosk.name || kiosk.id}
+                </option>
               ))}
             </select>
             <ChevronIcon />
@@ -139,8 +271,8 @@ export default function App() {
                 value={floor}
                 onChange={(e) => setFloor(e.target.value)}
               >
-                <option value="" disabled>Floor</option>
-                {FLOORS.filter(Boolean).map((f) => (
+                <option value="" disabled>Pilih Lantai</option>
+                {floors.map((f) => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
@@ -157,14 +289,12 @@ export default function App() {
             maxScale={5}
             centerOnInit={true}
           >
-         {/* Hapus contentStyle yang ada display:flex agar Konva bisa merender full size */}
             <TransformComponent
               wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
-              contentStyle={{ width: "100%", height: "100vh" }} // HILMY FIX: Pastikan ini ditambahkan biar ngga putih kosong
+              contentStyle={{ width: "100%", height: "100vh" }}
             >
               <div className="map-content" style={{ width: "100%", height: "100%" }}>
-                {/* PANGGIL KOMPONEN PETA DI SINI */}
-                <SharedMap currentFloor={floor} />
+                <SharedMap path={pathData} currentFloor={floor} />
               </div>
             </TransformComponent>
           </TransformWrapper>
