@@ -28,16 +28,19 @@ const LoginIcon = () => (
   </svg>
 );
 
-// ── Sample data ──────────────────────────────────────────
-const FLOORS    = ["", "Lantai 1", "Lantai 2", "Lantai 3", "Lantai 4"];
+// BARIS YANG SALAH DI LUAR KOMPONEN SUDAH DIHAPUS
 
 // ── Main component ───────────────────────────────────────
 export default function App() {
   const navigate = useNavigate();
   const [search,      setSearch]      = useState("");
   const [outputText,  setOutputText]  = useState("");
-  const [location,    setLocation]    = useState(""); // Ini sekarang menyimpan ID Kiosk
-  const [floor,       setFloor]       = useState("Lantai 1");
+  const [location,    setLocation]    = useState(""); // Menyimpan ID Kiosk
+  
+  // PERBAIKAN: Menambahkan state 'floor' untuk lantai aktif dan 'floors' untuk daftar lantai
+  const [floor,       setFloor]       = useState("Lantai 1"); 
+  const [floors,      setFloors]      = useState(["Lantai 1"]); 
+  
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [username,    setUsername]    = useState("");
   const [password,    setPassword]    = useState("");
@@ -45,22 +48,46 @@ export default function App() {
   const [pathData,    setPathData]    = useState([]);
   const [targetRoomName, setTargetRoomName] = useState("");
 
-  // Fetch kiosk data dari Firestore
+  // Fetch kiosk data DAN deteksi lantai secara dinamis
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, "Kiosks"), (snapshot) => {
+    // 1. Listen ke Kiosks
+    const unsubscribeKiosks = onSnapshot(collection(db, "Kiosks"), (kioskSnap) => {
       const loadedKiosks = [];
-      snapshot.forEach((docSnap) => {
-        loadedKiosks.push({
-          id: docSnap.id,
-          ...docSnap.data()
-        });
+      const foundFloors = new Set(["Lantai 1"]); // Selalu mulai dengan Lantai 1 sebagai default
+
+      kioskSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        loadedKiosks.push({ id: docSnap.id, ...data });
+        if (data.floor) foundFloors.add(data.floor);
       });
       setKiosks(loadedKiosks);
-    }, (error) => {
-      console.error("Gagal memuat kiosk:", error);
+      
+      // Update daftar lantai jika ditemukan lantai baru di Kiosks
+      setFloors(prev => {
+        const combined = new Set([...prev, ...foundFloors]);
+        return Array.from(combined).sort();
+      });
     });
 
-    return () => unsubscribe();
+    // 2. Listen ke Rooms (Karena lantai baru mungkin cuma berisi ruangan tanpa kiosk)
+    const unsubscribeRooms = onSnapshot(collection(db, "Rooms"), (roomSnap) => {
+      const foundFloors = new Set();
+      roomSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data.floor) foundFloors.add(data.floor);
+      });
+
+      // Update daftar lantai jika ditemukan lantai baru di Rooms
+      setFloors(prev => {
+        const combined = new Set([...prev, ...foundFloors]);
+        return Array.from(combined).sort();
+      });
+    });
+
+    return () => {
+      unsubscribeKiosks();
+      unsubscribeRooms();
+    };
   }, []);
 
   // Fungsi Text-to-Speech (Membacakan Teks per langkah)
@@ -151,14 +178,12 @@ export default function App() {
     }
   };
 
-  // When user submits a search, fill the output textarea
   const handleSearchKey = (e) => {
     if (e.key === "Enter") {
       executeSearch();
     }
   };
 
-  // Handle login and navigate to admin page
   const handleLogin = () => {
     if (username.trim() && password.trim()) {
       setIsLoginOpen(false);
@@ -238,8 +263,6 @@ export default function App() {
             style={{ minHeight: "100px" }}
           />
 
-
-
           {/* Location dropdown */}
           <div className="dropdown-wrapper">
             <select
@@ -263,7 +286,7 @@ export default function App() {
             <ChevronIcon />
           </div>
 
-          {/* Floor dropdown + selected chip */}
+          {/* Floor dropdown */}
           <div className="floor-group">
             <div className="dropdown-wrapper">
               <select
@@ -271,8 +294,8 @@ export default function App() {
                 value={floor}
                 onChange={(e) => setFloor(e.target.value)}
               >
-                <option value="" disabled>Floor</option>
-                {FLOORS.filter(Boolean).map((f) => (
+                <option value="" disabled>Pilih Lantai</option>
+                {floors.map((f) => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
@@ -292,13 +315,11 @@ export default function App() {
             maxScale={5}
             centerOnInit={true}
           >
-            {/* Hapus contentStyle yang ada display:flex agar Konva bisa merender full size */}
             <TransformComponent
               wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
-              contentStyle={{ width: "100%", height: "100vh" }} // HILMY FIX: Pastikan ini ditambahkan biar ngga putih kosong
+              contentStyle={{ width: "100%", height: "100vh" }}
             >
               <div className="map-content" style={{ width: "100%", height: "100%" }}>
-                {/* PANGGIL KOMPONEN PETA DI SINI */}
                 <SharedMap path={pathData} currentFloor={floor} />
               </div>
             </TransformComponent>
