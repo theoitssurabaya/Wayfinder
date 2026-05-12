@@ -43,24 +43,18 @@ def sinkronisasi_peta(data):
             gw = item.get("grid_width", 1)
             gh = item.get("grid_height", 1)
             
-            door_side = item.get("door_side", "bottom")
-            door_offset = item.get("door_offset", 0)
+            endpoints = item.get("endpoints", ["bottom"])
             
-            # Hitung letak pintu (titik navigasi target)
-            door_x = gx
-            door_y = gy
-            if door_side == "top":
-                door_x = gx + door_offset
-                door_y = gy
-            elif door_side == "bottom":
-                door_x = gx + door_offset
-                door_y = gy + gh - 1
-            elif door_side == "left":
-                door_x = gx
-                door_y = gy + door_offset
-            elif door_side == "right":
-                door_x = gx + gw - 1
-                door_y = gy + door_offset
+            door_coords = []
+            for ep in endpoints:
+                if ep == "top":
+                    door_coords.append((gx + gw//2, gy))
+                elif ep == "bottom":
+                    door_coords.append((gx + gw//2, gy + gh - 1))
+                elif ep == "left":
+                    door_coords.append((gx, gy + gh//2))
+                elif ep == "right":
+                    door_coords.append((gx + gw - 1, gy + gh//2))
             
             floor = item.get("floor", "Lantai 1")
             
@@ -70,8 +64,7 @@ def sinkronisasi_peta(data):
                 "y": gy,
                 "w": gw,
                 "h": gh,
-                "door_x": door_x,
-                "door_y": door_y,
+                "door_coords": door_coords,
                 "name": room_name,
                 "floor": floor
             }

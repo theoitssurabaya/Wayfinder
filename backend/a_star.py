@@ -6,8 +6,9 @@ def _a_star_single_floor(start_node, target_node):
     grid = get_grid_map(floor)
     
     target_coords = set()
-    if "door_x" in target_node and "door_y" in target_node:
-        target_coords.add((target_node["door_x"], target_node["door_y"]))
+    if "door_coords" in target_node and target_node["door_coords"]:
+        for c in target_node["door_coords"]:
+            target_coords.add(c)
     else:
         for dy in range(target_node.get("h", 1)):
             for dx in range(target_node.get("w", 1)):
@@ -24,11 +25,12 @@ def _a_star_single_floor(start_node, target_node):
             sy = start_node["y"] + dy
             
             g_score[(sx, sy)] = 0
-            tx = target_node.get("door_x", target_node["x"])
-            ty = target_node.get("door_y", target_node["y"])
-            h = hitung_manhattan(sx, sy, tx, ty)
-            f_score[(sx, sy)] = h
-            heapq.heappush(open_set, (h, (sx, sy)))
+            min_h = float('inf')
+            for tx, ty in target_coords:
+                h = hitung_manhattan(sx, sy, tx, ty)
+                if h < min_h: min_h = h
+            f_score[(sx, sy)] = min_h
+            heapq.heappush(open_set, (min_h, (sx, sy)))
             
     while open_set:
         current_f, current = heapq.heappop(open_set)
@@ -53,9 +55,11 @@ def _a_star_single_floor(start_node, target_node):
                     if (nx, ny) not in g_score or tentative_g < g_score[(nx, ny)]:
                         came_from[(nx, ny)] = current
                         g_score[(nx, ny)] = tentative_g
-                        tx = target_node.get("door_x", target_node["x"])
-                        ty = target_node.get("door_y", target_node["y"])
-                        f_score[(nx, ny)] = tentative_g + hitung_manhattan(nx, ny, tx, ty)
+                        min_h = float('inf')
+                        for tx, ty in target_coords:
+                            h = hitung_manhattan(nx, ny, tx, ty)
+                            if h < min_h: min_h = h
+                        f_score[(nx, ny)] = tentative_g + min_h
                         heapq.heappush(open_set, (f_score[(nx, ny)], (nx, ny)))
                         
     return None
