@@ -35,21 +35,19 @@ const LoginIcon = () => (
   </svg>
 );
 
-// Konstanta statis LOCATIONS dan FLOORS dihapus agar sistem dinamis
-
 export default function App() {
   const navigate = useNavigate();
   const [search,      setSearch]      = useState("");
   const [outputText,  setOutputText]  = useState("");
-  const [location,    setLocation]    = useState(""); // Menyimpan ID Kiosk
+  const [location,    setLocation]    = useState(""); 
   const [floor,       setFloor]       = useState("Lantai 1");
   const [floors,      setFloors]      = useState(["Lantai 1"]);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [kiosks,      setKiosks]      = useState([]);
+  const [rooms,       setRooms]       = useState([]); // STATE BARU: Daftar Ruangan
   const [pathData,    setPathData]    = useState([]);
   const [targetRoomName, setTargetRoomName] = useState("");
 
-  // Fetch kiosk data DAN deteksi lantai secara dinamis
   useEffect(() => {
     // 1. Listen ke Kiosks
     const unsubscribeKiosks = onSnapshot(collection(db, "Kiosks"), (kioskSnap) => {
@@ -72,10 +70,18 @@ export default function App() {
     // 2. Listen ke Rooms
     const unsubscribeRooms = onSnapshot(collection(db, "Rooms"), (roomSnap) => {
       const foundFloors = new Set();
+      const loadedRooms = [];
+
       roomSnap.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.floor) foundFloors.add(data.floor);
+        if (data.name && data.name !== "Tanpa Nama") {
+          loadedRooms.push({ id: docSnap.id, name: data.name });
+        }
       });
+
+      loadedRooms.sort((a, b) => a.name.localeCompare(b.name));
+      setRooms(loadedRooms);
 
       setFloors(prev => {
         const combined = new Set([...prev, ...foundFloors]);
@@ -89,7 +95,6 @@ export default function App() {
     };
   }, []);
 
-  // Fungsi Text-to-Speech (Membacakan Teks per langkah)
   const speakSteps = (langkahNavigasi) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
@@ -108,11 +113,11 @@ export default function App() {
     }
   };
 
-  // Fungsi pencarian dan navigasi (API Call ke Backend Theo)
-  const executeSearch = async (overrideLocation) => {
+  const executeSearch = async (overrideLocation, overrideTarget) => {
     const searchLocation = typeof overrideLocation === 'string' ? overrideLocation : location;
+    const searchTarget = typeof overrideTarget === 'string' ? overrideTarget : search;
     
-    if (!search.trim()) return;
+    if (!searchTarget.trim()) return;
     
     if (!searchLocation) {
       setOutputText("Silakan pilih Kiosk awal terlebih dahulu.");
@@ -128,7 +133,7 @@ export default function App() {
         },
         body: JSON.stringify({
           start_node_id: searchLocation,
-          teks_pencarian: search.trim()
+          teks_pencarian: searchTarget.trim()
         })
       });
       
@@ -140,16 +145,13 @@ export default function App() {
       } else {
         const roomName = data.data_target.nama_ruangan;
         setTargetRoomName(roomName);
-        
         setPathData(data.jalur_koordinat);
         
         let allText = "Teks navigasi tidak tersedia.";
         if (data.langkah_navigasi && data.langkah_navigasi.length > 0) {
             allText = data.langkah_navigasi.map(l => l.teks).join("\n\n");
-            
             const finalText = `Rute ditemukan!\nMenuju: ${roomName}\n\n${allText}`;
             setOutputText(finalText);
-            
             speakSteps(data.langkah_navigasi);
         } else {
             const fallbackText = `Rute ditemukan menuju ${roomName}`;
@@ -176,11 +178,10 @@ export default function App() {
 
   const handleSearchKey = (e) => {
     if (e.key === "Enter") {
-      executeSearch();
+      executeSearch(location, search);
     }
   };
 
-  // Fungsi navigasi khusus Admin
   const openLogoutConfirm = () => setIsConfirmOpen(true);
   const handleLogoutYes = () => {
     setIsConfirmOpen(false);
@@ -204,7 +205,6 @@ export default function App() {
         </div>
       </header>
 
-      {/* MODAL KONFIRMASI LOGOUT */}
       {isConfirmOpen && (
         <div className="modal-overlay" onClick={handleLogoutNo}>
           <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
@@ -229,7 +229,7 @@ export default function App() {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleSearchKey}
             />
-            <div style={{ cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => executeSearch()}>
+            <div style={{ cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => executeSearch(location, search)}>
               <SearchIcon />
             </div>
           </div>
@@ -242,6 +242,7 @@ export default function App() {
             style={{ minHeight: "100px" }}
           />
 
+          {/* KIOSK DROPDOWN */}
           <div className="dropdown-wrapper">
             <select
               className="dropdown-select"
@@ -250,7 +251,7 @@ export default function App() {
                 const newLocation = e.target.value;
                 setLocation(newLocation);
                 if (search.trim()) {
-                  executeSearch(newLocation);
+                  executeSearch(newLocation, search);
                 }
               }}
             >
@@ -259,6 +260,25 @@ export default function App() {
                 <option key={kiosk.id} value={kiosk.id}>
                   {kiosk.name || kiosk.id}
                 </option>
+              ))}
+            </select>
+            <ChevronIcon />
+          </div>
+
+          {/* RUANGAN DROPDOWN (BARU) */}
+          <div className="dropdown-wrapper" style={{ marginTop: "12px" }}>
+            <select
+              className="dropdown-select"
+              value={rooms.some(r => r.name === search) ? search : ""}
+              onChange={(e) => {
+                const newTarget = e.target.value;
+                setSearch(newTarget); // Sinkronkan dropdown ke kotak teks
+                executeSearch(location, newTarget);
+              }}
+            >
+              <option value="" disabled>Pilih Ruangan Tujuan</option>
+              {rooms.map((room) => (
+                <option key={room.id} value={room.name}>{room.name}</option>
               ))}
             </select>
             <ChevronIcon />
@@ -283,16 +303,8 @@ export default function App() {
         </aside>
         
         <main className="map-panel">
-          <TransformWrapper
-            initialScale={1}
-            minScale={0.5}
-            maxScale={5}
-            centerOnInit={true}
-          >
-            <TransformComponent
-              wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
-              contentStyle={{ width: "100%", height: "100vh" }}
-            >
+          <TransformWrapper initialScale={1} minScale={0.5} maxScale={5} centerOnInit={true}>
+            <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }} contentStyle={{ width: "100%", height: "100vh" }}>
               <div className="map-content" style={{ width: "100%", height: "100%" }}>
                 <SharedMap path={pathData} currentFloor={floor} />
               </div>

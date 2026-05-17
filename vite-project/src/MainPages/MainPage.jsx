@@ -6,7 +6,7 @@ import { db } from "../firebase";
 import SharedMap from "../components/SharedMap";
 import "./Main.css";
 
-// ── Icon components (inline SVG, no extra deps needed) ──
+// ── Icon components ──
 const SearchIcon = () => (
   <svg className="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <circle cx="11" cy="11" r="8" />
@@ -28,32 +28,26 @@ const LoginIcon = () => (
   </svg>
 );
 
-// BARIS YANG SALAH DI LUAR KOMPONEN SUDAH DIHAPUS
-
-// ── Main component ───────────────────────────────────────
 export default function App() {
   const navigate = useNavigate();
   const [search,      setSearch]      = useState("");
   const [outputText,  setOutputText]  = useState("");
-  const [location,    setLocation]    = useState(""); // Menyimpan ID Kiosk
-  
-  // PERBAIKAN: Menambahkan state 'floor' untuk lantai aktif dan 'floors' untuk daftar lantai
+  const [location,    setLocation]    = useState(""); 
   const [floor,       setFloor]       = useState("Lantai 1"); 
   const [floors,      setFloors]      = useState(["Lantai 1"]); 
-  
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [username,    setUsername]    = useState("");
   const [password,    setPassword]    = useState("");
   const [kiosks,      setKiosks]      = useState([]);
+  const [rooms,       setRooms]       = useState([]); // STATE BARU: Daftar Ruangan
   const [pathData,    setPathData]    = useState([]);
   const [targetRoomName, setTargetRoomName] = useState("");
 
-  // Fetch kiosk data DAN deteksi lantai secara dinamis
   useEffect(() => {
     // 1. Listen ke Kiosks
     const unsubscribeKiosks = onSnapshot(collection(db, "Kiosks"), (kioskSnap) => {
       const loadedKiosks = [];
-      const foundFloors = new Set(["Lantai 1"]); // Selalu mulai dengan Lantai 1 sebagai default
+      const foundFloors = new Set(["Lantai 1"]);
 
       kioskSnap.forEach((docSnap) => {
         const data = docSnap.data();
@@ -62,22 +56,30 @@ export default function App() {
       });
       setKiosks(loadedKiosks);
       
-      // Update daftar lantai jika ditemukan lantai baru di Kiosks
       setFloors(prev => {
         const combined = new Set([...prev, ...foundFloors]);
         return Array.from(combined).sort();
       });
     });
 
-    // 2. Listen ke Rooms (Karena lantai baru mungkin cuma berisi ruangan tanpa kiosk)
+    // 2. Listen ke Rooms
     const unsubscribeRooms = onSnapshot(collection(db, "Rooms"), (roomSnap) => {
       const foundFloors = new Set();
+      const loadedRooms = [];
+
       roomSnap.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.floor) foundFloors.add(data.floor);
+        // Hanya masukkan ruangan yang sudah diberi nama ke dalam dropdown
+        if (data.name && data.name !== "Tanpa Nama") {
+          loadedRooms.push({ id: docSnap.id, name: data.name });
+        }
       });
 
-      // Update daftar lantai jika ditemukan lantai baru di Rooms
+      // Urutkan ruangan berdasarkan abjad (A-Z) agar rapi
+      loadedRooms.sort((a, b) => a.name.localeCompare(b.name));
+      setRooms(loadedRooms);
+
       setFloors(prev => {
         const combined = new Set([...prev, ...foundFloors]);
         return Array.from(combined).sort();
@@ -90,17 +92,15 @@ export default function App() {
     };
   }, []);
 
-  // Fungsi Text-to-Speech (Membacakan Teks per langkah)
   const speakSteps = (langkahNavigasi) => {
     if ('speechSynthesis' in window) {
-      window.speechSynthesis.cancel(); // Hentikan suara sebelumnya
+      window.speechSynthesis.cancel();
       
       langkahNavigasi.forEach((step) => {
         const utterance = new SpeechSynthesisUtterance(step.teks);
-        utterance.lang = 'id-ID'; // Aksen Bahasa Indonesia
-        utterance.rate = 1.15; // Dipercepat sedikit
+        utterance.lang = 'id-ID';
+        utterance.rate = 1.15;
         utterance.onstart = () => {
-          // Ketika teks ini mulai dibacakan, ganti floor UI sesuai floor langkah ini
           if (step.floor) {
             setFloor(step.floor);
           }
@@ -110,11 +110,12 @@ export default function App() {
     }
   };
 
-  // Fungsi pencarian dan navigasi
-  const executeSearch = async (overrideLocation) => {
+  // FUNGSI DIPERBARUI: Menerima parameter lokasi dan target
+  const executeSearch = async (overrideLocation, overrideTarget) => {
     const searchLocation = typeof overrideLocation === 'string' ? overrideLocation : location;
+    const searchTarget = typeof overrideTarget === 'string' ? overrideTarget : search;
     
-    if (!search.trim()) return;
+    if (!searchTarget.trim()) return;
     
     if (!searchLocation) {
       setOutputText("Silakan pilih Kiosk awal terlebih dahulu.");
@@ -130,7 +131,7 @@ export default function App() {
         },
         body: JSON.stringify({
           start_node_id: searchLocation,
-          teks_pencarian: search.trim()
+          teks_pencarian: searchTarget.trim()
         })
       });
       
@@ -142,23 +143,18 @@ export default function App() {
       } else {
         const roomName = data.data_target.nama_ruangan;
         setTargetRoomName(roomName);
-        
         setPathData(data.jalur_koordinat);
         
         let allText = "Teks navigasi tidak tersedia.";
         if (data.langkah_navigasi && data.langkah_navigasi.length > 0) {
             allText = data.langkah_navigasi.map(l => l.teks).join("\n\n");
-            
             const finalText = `Rute ditemukan!\nMenuju: ${roomName}\n\n${allText}`;
             setOutputText(finalText);
-            
-            // Antrekan bacaan per langkah agar bisa ganti lantai otomatis
             speakSteps(data.langkah_navigasi);
         } else {
             const fallbackText = `Rute ditemukan menuju ${roomName}`;
             setOutputText(fallbackText);
             
-            // Set floor otomatis ke lantai awal (jika ada koordinat)
             if (data.jalur_koordinat && data.jalur_koordinat.length > 0 && data.jalur_koordinat[0].floor) {
                 setFloor(data.jalur_koordinat[0].floor);
             }
@@ -180,7 +176,7 @@ export default function App() {
 
   const handleSearchKey = (e) => {
     if (e.key === "Enter") {
-      executeSearch();
+      executeSearch(location, search);
     }
   };
 
@@ -195,7 +191,6 @@ export default function App() {
 
   return (
     <div>
-      {/* ── Header ── */}
       <header className="header">
         <span className="header-logo">Wayfinder</span>
         <button className="header-login-btn Onclick" onClick={() => setIsLoginOpen(true)}>
@@ -204,7 +199,6 @@ export default function App() {
         </button>
       </header>
 
-      {/* MODAL LOGIN */}
       {isLoginOpen && (
         <div className="modal-overlay" onClick={() => setIsLoginOpen(false)}>
           <div className="login-modal" onClick={(e) => e.stopPropagation()}>
@@ -212,34 +206,20 @@ export default function App() {
             <h2>ADMIN LOGIN PAGE</h2>
             <div className="input-group">
               <label>Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              />
+              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
             </div>
             <div className="input-group">
               <label>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
             </div>
             <button className="submit-login-btn" onClick={handleLogin}>LOGIN</button>
           </div>
         </div>
       )}
 
-      {/* ── Body ── */}
       <div className="main-layout">
-
-        {/* Left panel */}
         <aside className="left-panel">
-
-          {/* Search destination */}
+          
           <div className="search-wrapper">
             <input
               className="search-input"
@@ -249,12 +229,11 @@ export default function App() {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleSearchKey}
             />
-            <div style={{ cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => executeSearch()}>
+            <div style={{ cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => executeSearch(location, search)}>
               <SearchIcon />
             </div>
           </div>
 
-          {/* Destination output */}
           <textarea
             className="destination-output"
             placeholder="Destination output text"
@@ -263,7 +242,7 @@ export default function App() {
             style={{ minHeight: "100px" }}
           />
 
-          {/* Location dropdown */}
+          {/* KIOSK DROPDOWN */}
           <div className="dropdown-wrapper">
             <select
               className="dropdown-select"
@@ -272,7 +251,7 @@ export default function App() {
                 const newLocation = e.target.value;
                 setLocation(newLocation);
                 if (search.trim()) {
-                  executeSearch(newLocation);
+                  executeSearch(newLocation, search);
                 }
               }}
             >
@@ -286,7 +265,26 @@ export default function App() {
             <ChevronIcon />
           </div>
 
-          {/* Floor dropdown */}
+          {/* RUANGAN DROPDOWN (BARU) */}
+          <div className="dropdown-wrapper" style={{ marginTop: "12px" }}>
+            <select
+              className="dropdown-select"
+              // Set value blank jika teks search diketik custom dan tidak ada di dropdown
+              value={rooms.some(r => r.name === search) ? search : ""}
+              onChange={(e) => {
+                const newTarget = e.target.value;
+                setSearch(newTarget); // Sinkronkan dropdown ke kotak teks
+                executeSearch(location, newTarget);
+              }}
+            >
+              <option value="" disabled>Pilih Ruangan Tujuan</option>
+              {rooms.map((room) => (
+                <option key={room.id} value={room.name}>{room.name}</option>
+              ))}
+            </select>
+            <ChevronIcon />
+          </div>
+
           <div className="floor-group">
             <div className="dropdown-wrapper">
               <select
@@ -309,16 +307,8 @@ export default function App() {
         </aside>
 
         <main className="map-panel">
-          <TransformWrapper
-            initialScale={1}
-            minScale={0.5}
-            maxScale={5}
-            centerOnInit={true}
-          >
-            <TransformComponent
-              wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }}
-              contentStyle={{ width: "100%", height: "100vh" }}
-            >
+          <TransformWrapper initialScale={1} minScale={0.5} maxScale={5} centerOnInit={true}>
+            <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }} contentStyle={{ width: "100%", height: "100vh" }}>
               <div className="map-content" style={{ width: "100%", height: "100%" }}>
                 <SharedMap path={pathData} currentFloor={floor} />
               </div>
