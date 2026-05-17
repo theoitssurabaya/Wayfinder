@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Stage, Layer, Rect, Text, Line, Transformer } from "react-konva";
@@ -6,7 +6,7 @@ import { collection, getDocs, doc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
 import "./Edit.css";
 
-const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggingElement, GRID_SIZE }) => {
+const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggingElement, GRID_SIZE, originalElements }) => {
   const shapeRef = useRef();
   const trRef = useRef();
 
@@ -25,10 +25,41 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
     }
   };
 
-  const dynamicFontSize = Math.max(10, Math.min(shapeProps.width / 5, shapeProps.height / 2.5));
-  const textColor = shapeProps.type === 'kiosk' ? '#FFFFFF' : '#1b5e20';
+  // ── RUMUS BARU: AUTO SHRINK FONT ──
+  const textContent = shapeProps.name || (shapeProps.type === 'kiosk' ? 'Kiosk' : 'Tanpa Nama');
+  const textLen = textContent.length || 1;
+  const usableWidth = shapeProps.width - 10;
+  const dynamicFontSize = Math.max(
+    5, 
+    Math.min(usableWidth / 4, shapeProps.height / 2.5, (usableWidth * 2.5) / textLen)
+  );
 
-  // Render penanda endpoint (garis merah marun di tengah sisi aktif)
+  // ── LOGIKA WARNA DINAMIS BERDASARKAN STATUS EDIT ──
+  const getVisualColors = useCallback(() => {
+    const DEFAULT_COLORS = { fill: "#f8f9fa", stroke: "#dae0e5", text: "#495057" }; 
+    const KIOSK_COLORS = { fill: "#2196F3", stroke: "#0D47A1", text: "#FFFFFF" }; 
+    
+    if (shapeProps.type === 'kiosk') return KIOSK_COLORS;
+
+    const original = originalElements.find(el => el.id === shapeProps.id);
+
+    if (!original) {
+        return { fill: "#d4edda", stroke: "#c3e6cb", text: "#155724" }; 
+    }
+
+    const posChanged = Math.abs(original.x - shapeProps.x) > 0.1 || Math.abs(original.y - shapeProps.y) > 0.1;
+    const sizeChanged = Math.abs(original.width - shapeProps.width) > 0.1 || Math.abs(original.height - shapeProps.height) > 0.1;
+
+    if (posChanged || sizeChanged) {
+        return { fill: "#fff3cd", stroke: "#ffeeba", text: "#856404" }; 
+    }
+
+    return DEFAULT_COLORS;
+  }, [shapeProps, originalElements]);
+
+  const visualColors = getVisualColors();
+
+  // Render penanda endpoint 
   const renderEndpoints = () => {
     if (shapeProps.type !== 'room') return null;
     const endpoints = shapeProps.endpoints || ['bottom'];
@@ -38,21 +69,13 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
     return endpoints.map((side) => {
       let mX, mY, mW, mH;
       if (side === 'top') {
-        mX = shapeProps.x + shapeProps.width / 2 - markerThick / 2;
-        mY = shapeProps.y - markerLen / 2;
-        mW = markerThick; mH = markerLen;
+        mX = shapeProps.x + shapeProps.width / 2 - markerThick / 2; mY = shapeProps.y - markerLen / 2; mW = markerThick; mH = markerLen;
       } else if (side === 'bottom') {
-        mX = shapeProps.x + shapeProps.width / 2 - markerThick / 2;
-        mY = shapeProps.y + shapeProps.height - markerLen / 2;
-        mW = markerThick; mH = markerLen;
+        mX = shapeProps.x + shapeProps.width / 2 - markerThick / 2; mY = shapeProps.y + shapeProps.height - markerLen / 2; mW = markerThick; mH = markerLen;
       } else if (side === 'left') {
-        mX = shapeProps.x - markerLen / 2;
-        mY = shapeProps.y + shapeProps.height / 2 - markerThick / 2;
-        mW = markerLen; mH = markerThick;
+        mX = shapeProps.x - markerLen / 2; mY = shapeProps.y + shapeProps.height / 2 - markerThick / 2; mW = markerLen; mH = markerThick;
       } else if (side === 'right') {
-        mX = shapeProps.x + shapeProps.width - markerLen / 2;
-        mY = shapeProps.y + shapeProps.height / 2 - markerThick / 2;
-        mW = markerLen; mH = markerThick;
+        mX = shapeProps.x + shapeProps.width - markerLen / 2; mY = shapeProps.y + shapeProps.height / 2 - markerThick / 2; mW = markerLen; mH = markerThick;
       }
       return <Rect key={side} x={mX} y={mY} width={mW} height={mH} fill="#B71C1C" listening={false} />;
     });
@@ -66,9 +89,10 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
         onDblClick={handleRename}
         ref={shapeRef}
         {...shapeProps}
+        fill={visualColors.fill} 
+        stroke={visualColors.stroke} 
         draggable
-        stroke={shapeProps.stroke}
-        strokeWidth={2}
+        strokeWidth={isSelected ? 3 : 2} 
         onDragStart={() => setIsDraggingElement(true)}
         onTransformStart={() => setIsDraggingElement(true)}
         dragBoundFunc={(pos) => ({
@@ -100,23 +124,22 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
         }}
       />
       <Text
-        text={shapeProps.name || (shapeProps.type === 'kiosk' ? 'Kiosk' : 'Tanpa Nama')}
+        text={textContent}
         x={shapeProps.x}
         y={shapeProps.y}
         width={shapeProps.width}
         height={shapeProps.height}
         fontSize={dynamicFontSize}
         fontStyle="bold"
-        fill={textColor}
+        fill={visualColors.text} 
         align="center"
         verticalAlign="middle"
         padding={5}
         listening={false}
-        wrap="char"
-        ellipsis={true}
+        wrap="word"
+        ellipsis={false}
       />
       
-      {/* Panggil visualisasi penanda endpoint dosen */}
       {renderEndpoints()}
 
       {isSelected && (
@@ -132,21 +155,37 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
 export default function EditPage() {
   const navigate = useNavigate();
   const [placedElements, setPlacedElements] = useState([]);
-  
-  // PERBAIKAN: Berikan ukuran default awal area kanvas virtual yang memadai (2000x1500)
   const [mapSize, setMapSize] = useState({ width: 2000, height: 1500 });
+  const [originalElements, setOriginalElements] = useState([]);
   
+  // ── STATE UNDO / REDO ──
+  const [history, setHistory] = useState([]);
+  const [historyStep, setHistoryStep] = useState(-1);
+
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [isDraggingElement, setIsDraggingElement] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [deletedElements, setDeletedElements] = useState([]);
-  const [floors, setFloors] = useState(["Lantai 1", "Lantai 2", "Lantai 3", "Lantai 4"]);
+  
+  const [floors, setFloors] = useState(["Lantai 1"]);
   const [activeEditFloor, setActiveEditFloor] = useState("Lantai 1");
 
   const mapRef = useRef(null);
   const transformRef = useRef(null);
   const GRID_SIZE = 25;
+
+  const saveHistory = useCallback((newElements) => {
+    let newHistory = history.slice(0, historyStep + 1);
+    newHistory.push(newElements);
+    
+    if (newHistory.length > 50) {
+        newHistory = newHistory.slice(newHistory.length - 50);
+    }
+    
+    setHistory(newHistory);
+    setHistoryStep(newHistory.length - 1);
+  }, [history, historyStep]);
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -157,7 +196,7 @@ export default function EditPage() {
         ]);
 
         const allElements = [];
-        const uniqueFloors = new Set(["Lantai 1", "Lantai 2", "Lantai 3", "Lantai 4"]);
+        const uniqueFloors = new Set(["Lantai 1"]);
 
         roomsSnapshot.forEach((docSnap) => {
           const data = docSnap.data();
@@ -171,8 +210,7 @@ export default function EditPage() {
             y: (data.grid_y || 0) * GRID_SIZE,
             width: (data.grid_width || 1) * GRID_SIZE,
             height: (data.grid_height || 1) * GRID_SIZE,
-            endpoints: data.endpoints && data.endpoints.length > 0 ? data.endpoints : ['bottom'],
-            fill: "#4caf50", stroke: "#1b5e20"
+            endpoints: data.endpoints && data.endpoints.length > 0 ? data.endpoints : ['bottom']
           });
         });
 
@@ -187,12 +225,19 @@ export default function EditPage() {
             x: (data.grid_x || 0) * GRID_SIZE,
             y: (data.grid_y || 0) * GRID_SIZE,
             width: (data.grid_width || 2) * GRID_SIZE,
-            height: (data.grid_height || 2) * GRID_SIZE,
-            fill: "#2196F3", stroke: "#0D47A1"
+            height: (data.grid_height || 2) * GRID_SIZE
           });
         });
+        
         setPlacedElements(allElements);
-        setFloors(Array.from(uniqueFloors));
+        setOriginalElements(JSON.parse(JSON.stringify(allElements))); 
+        
+        setHistory([allElements]);
+        setHistoryStep(0);
+        
+        const sortedFloors = Array.from(uniqueFloors).sort();
+        setFloors(sortedFloors);
+        setActiveEditFloor(sortedFloors[0] || "Lantai 1");
       } catch (error) {
         console.error("Gagal mengambil data:", error);
       }
@@ -200,7 +245,6 @@ export default function EditPage() {
     fetchAllData();
   }, []);
 
-  // PERBAIKAN: Gunakan setTimeout dan fallback agar dimensi Stage tidak pernah 0
   useEffect(() => {
     const updateMapSize = () => {
       if (mapRef.current) {
@@ -210,27 +254,58 @@ export default function EditPage() {
         });
       }
     };
-    
     setTimeout(updateMapSize, 100);
     window.addEventListener("resize", updateMapSize);
     return () => window.removeEventListener("resize", updateMapSize);
   }, []);
 
-  const deleteSelectedElement = () => {
+  const handleUndo = useCallback(() => {
+    if (historyStep > 0) {
+        const prevStep = historyStep - 1;
+        setHistoryStep(prevStep);
+        setPlacedElements(history[prevStep]);
+        setSelectedId(null); 
+    }
+  }, [history, historyStep]);
+
+  const handleRedo = useCallback(() => {
+    if (historyStep < history.length - 1) {
+        const nextStep = historyStep + 1;
+        setHistoryStep(nextStep);
+        setPlacedElements(history[nextStep]);
+        setSelectedId(null);
+    }
+  }, [history, historyStep]);
+
+  const deleteSelectedElement = useCallback(() => {
     if (selectedId) {
       setDeletedElements((prev) => [...prev, selectedId]);
-      setPlacedElements(placedElements.filter((el) => el.id !== selectedId));
+      const newElements = placedElements.filter((el) => el.id !== selectedId);
+      setPlacedElements(newElements);
+      saveHistory(newElements); 
       setSelectedId(null);
     }
-  };
+  }, [selectedId, placedElements, saveHistory]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.key === "Delete" || e.key === "Backspace") && selectedId) deleteSelectedElement();
+      if (e.target.tagName.toLowerCase() === 'input') return;
+
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedId) {
+        deleteSelectedElement();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        handleUndo();
+      }
+      if (e.ctrlKey && e.key.toLowerCase() === "y") {
+        e.preventDefault();
+        handleRedo();
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedId, placedElements]);
+  }, [selectedId, deleteSelectedElement, handleUndo, handleRedo]);
 
   const checkDeselect = (e) => {
     const clickedOnEmpty = e.target === e.target.getStage() || e.target.attrs.id === "bg-grid";
@@ -267,7 +342,8 @@ export default function EditPage() {
         alert("Lantai tersebut sudah ada di daftar!");
         return;
       }
-      setFloors([...floors, formattedFloor]);
+      const newFloorsList = [...floors, formattedFloor].sort();
+      setFloors(newFloorsList);
       setActiveEditFloor(formattedFloor);
       setSelectedId(null);
     }
@@ -288,7 +364,9 @@ export default function EditPage() {
       const idsToDelete = elementsToDelete.map(el => el.id);
       setDeletedElements(prev => [...prev, ...idsToDelete]);
 
-      setPlacedElements(prev => prev.filter(el => el.floor !== activeEditFloor));
+      const newElements = placedElements.filter(el => el.floor !== activeEditFloor);
+      setPlacedElements(newElements);
+      saveHistory(newElements); 
 
       const remainingFloors = floors.filter(f => f !== activeEditFloor);
       setFloors(remainingFloors);
@@ -307,7 +385,6 @@ export default function EditPage() {
     try {
         dragData = JSON.parse(e.dataTransfer.getData("text/plain"));
     } catch (err) {
-        console.error("Gagal parsing drag data:", err);
         return; 
     }
 
@@ -318,30 +395,28 @@ export default function EditPage() {
       const snappedX = Math.round(x / GRID_SIZE) * GRID_SIZE;
       const snappedY = Math.round(y / GRID_SIZE) * GRID_SIZE;
 
+      let newElements = [...placedElements];
+      let newId;
+
       if (dragData.type === "new-kiosk") {
-        const newId = generateNextKioskId();
-        setPlacedElements([...placedElements, {
-          id: newId, type: 'kiosk', 
-          floor: activeEditFloor, 
-          x: snappedX, y: snappedY, 
-          width: GRID_SIZE * (dragData.defaultGridWidth || 2), 
-          height: GRID_SIZE * (dragData.defaultGridHeight || 2),
-          name: dragData.defaultName, fill: "#2196F3", stroke: "#0D47A1"
-        }]);
-        setSelectedId(newId);
+        newId = generateNextKioskId();
+        newElements.push({
+          id: newId, type: 'kiosk', floor: activeEditFloor, 
+          x: snappedX, y: snappedY, width: GRID_SIZE * (dragData.defaultGridWidth || 2), height: GRID_SIZE * (dragData.defaultGridHeight || 2),
+          name: dragData.defaultName, 
+        });
       } else if (dragData.type === "new-room") {
-        const newId = generateNextRoomId();
-        setPlacedElements([...placedElements, {
-          id: newId, type: 'room',
-          floor: activeEditFloor,
-          x: snappedX, y: snappedY, 
-          width: GRID_SIZE * (dragData.defaultGridWidth || 4), 
-          height: GRID_SIZE * (dragData.defaultGridHeight || 2),
-          endpoints: dragData.endpoints, 
-          name: dragData.defaultName, fill: "#4caf50", stroke: "#1b5e20"
-        }]);
-        setSelectedId(newId);
+        newId = generateNextRoomId();
+        newElements.push({
+          id: newId, type: 'room', floor: activeEditFloor,
+          x: snappedX, y: snappedY, width: GRID_SIZE * (dragData.defaultGridWidth || 4), height: GRID_SIZE * (dragData.defaultGridHeight || 2),
+          endpoints: dragData.endpoints, name: dragData.defaultName, 
+        });
       }
+      
+      setPlacedElements(newElements);
+      saveHistory(newElements); 
+      setSelectedId(newId);
     }
   };
 
@@ -432,10 +507,12 @@ export default function EditPage() {
                             onSelect={() => setSelectedId(rect.id)}
                             onChange={(newAttrs) => {
                                 const index = placedElements.findIndex(e => e.id === rect.id);
-                                const rects = [...placedElements];
-                                rects[index] = newAttrs;
-                                setPlacedElements(rects);
+                                const newElements = [...placedElements];
+                                newElements[index] = newAttrs;
+                                setPlacedElements(newElements);
+                                saveHistory(newElements); 
                             }}
+                            originalElements={originalElements} 
                         />
                     ))}
                   </Layer>
@@ -446,13 +523,11 @@ export default function EditPage() {
         </main>
 
         <aside className="edit-page-right-panel">
-          {/* ── CARD 1: MANAJEMEN LANTAI BARU ── */}
           <div style={{ background: "#ffffff", padding: "12px", borderRadius: "6px", border: "1px solid #cce5ff", marginBottom: "15px", boxShadow: "0 2px 4px rgba(0,0,0,0.03)" }}>
             <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", color: "#0056b3", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span>Manajemen Lantai</span>
+              <span>🏢 Manajemen Lantai</span>
               <span style={{ fontSize: "10px", background: "#e8f4f8", padding: "2px 6px", borderRadius: "10px", color: "#0d47a1" }}>{floors.length} Lantai</span>
             </h4>
-            
             <select 
               value={activeEditFloor} 
               onChange={(e) => {
@@ -465,22 +540,30 @@ export default function EditPage() {
             </select>
 
             <div style={{ display: "flex", gap: "6px" }}>
-              <button 
-                onClick={handleAddFloor}
-                style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#28a745", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", transition: "0.2s" }}
-              >
-                Tambah
-              </button>
-              <button 
-                onClick={handleDeleteFloor}
-                style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold", transition: "0.2s" }}
-              >
-                Hapus
-              </button>
+              <button onClick={handleAddFloor} style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#28a745", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Tambah</button>
+              <button onClick={handleDeleteFloor} style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Hapus</button>
             </div>
           </div>
 
-          {/* ── CARD 2: KONTROL EDIT ELEMEN TERPILIH ── */}
+          <div style={{ display: "flex", gap: "6px", marginBottom: "15px" }}>
+              <button 
+                  onClick={handleUndo}
+                  disabled={historyStep <= 0}
+                  style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep <= 0 ? "#f1f3f5" : "#ffffff", color: historyStep <= 0 ? "#adb5bd" : "#495057", border: "1px solid #ced4da", borderRadius: "4px", cursor: historyStep <= 0 ? "not-allowed" : "pointer", fontWeight: "bold" }}
+                  title="Undo (Ctrl+Z)"
+              >
+                  ↶ Undo
+              </button>
+              <button 
+                  onClick={handleRedo}
+                  disabled={historyStep >= history.length - 1}
+                  style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep >= history.length - 1 ? "#f1f3f5" : "#ffffff", color: historyStep >= history.length - 1 ? "#adb5bd" : "#495057", border: "1px solid #ced4da", borderRadius: "4px", cursor: historyStep >= history.length - 1 ? "not-allowed" : "pointer", fontWeight: "bold" }}
+                  title="Redo (Ctrl+Y)"
+              >
+                  Redo ↷
+              </button>
+          </div>
+
           <h3>Edit Panel - {activeEditFloor}</h3>
           <div className="edit-tools">
             <p style={{fontSize: "12px", color: "#666"}}>
@@ -495,13 +578,15 @@ export default function EditPage() {
                 color: "white", border: "none", borderRadius: "5px", cursor: selectedId ? "pointer" : "not-allowed", marginTop: "10px"
               }}
             >
-              Hapus Elemen
+              Hapus Elemen (Del)
             </button>
             
             {selectedId && placedElements.find(el => el.id === selectedId)?.type === 'room' && (() => {
                const room = placedElements.find(el => el.id === selectedId);
                const updateRoom = (changes) => {
-                   setPlacedElements(placedElements.map(el => el.id === selectedId ? { ...el, ...changes } : el));
+                   const newElements = placedElements.map(el => el.id === selectedId ? { ...el, ...changes } : el);
+                   setPlacedElements(newElements);
+                   saveHistory(newElements); 
                };
                return (
                    <div className="endpoint-controls" style={{marginTop: "15px", background: "#f9f9f9", padding: "10px", borderRadius: "5px", border: "1px solid #ddd"}}>
@@ -530,7 +615,6 @@ export default function EditPage() {
                    </div>
                );
             })()}
-            
           </div>
 
           <hr style={{margin: "20px 0", border: "0.5px solid #ddd"}} />
@@ -540,9 +624,9 @@ export default function EditPage() {
           
           <div className="dnd-zone" style={{display: "flex", flexDirection: "column", gap: "10px"}}>
             {[
-              { name: "Opposing Door Room ", endpoints: ['left', 'right'], color: "#4caf50" },
-              { name: "One Door Room", endpoints: ['top',], color: "#4caf50" },
-              { name: "Two Door Room ", endpoints: ['left', 'bottom'], color: "#4caf50" },
+              { name: "Opposing Door Room", endpoints: ['left', 'right'], color: "#4caf50" },
+              { name: "One Door Room", endpoints: ['top'], color: "#4caf50" },
+              { name: "Two Door Room", endpoints: ['left', 'bottom'], color: "#4caf50" },
               { name: "Three Door Room", endpoints: ['left', 'right', 'bottom'], color: "#4caf50" },
               { name: "Four Door Room", endpoints: ['top', 'bottom', 'left', 'right'], color: "#4caf50" }
             ].map(preset => (
