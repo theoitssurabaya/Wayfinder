@@ -71,8 +71,8 @@ export default function App() {
         const data = docSnap.data();
         if (data.floor) foundFloors.add(data.floor);
         // Hanya masukkan ruangan yang sudah diberi nama ke dalam dropdown
-        if (data.name && data.name !== "Tanpa Nama") {
-          loadedRooms.push({ id: docSnap.id, name: data.name });
+        if (data.name && data.name !== "Tanpa Nama" && data.name.toLowerCase() !== "pintu masuk") {
+          loadedRooms.push({ id: docSnap.id, name: data.name, floor: data.floor || "Lantai 1" });
         }
       });
 
@@ -239,7 +239,7 @@ export default function App() {
             placeholder="Destination output text"
             value={outputText}
             readOnly
-            style={{ minHeight: "100px" }}
+            style={{ minHeight: "100px", marginTop: "15px" }}
           />
 
           {/* KIOSK DROPDOWN */}
@@ -289,28 +289,64 @@ export default function App() {
             <div className="dropdown-wrapper">
               <select
                 className="dropdown-select"
-                value={floor}
+                value={(() => {
+                  if (floor.startsWith("submap_")) {
+                    const parentId = floor.replace("submap_", "");
+                    const parent = rooms.find(r => r.id === parentId);
+                    return parent ? parent.floor : "Lantai 1";
+                  }
+                  return floor;
+                })()}
                 onChange={(e) => setFloor(e.target.value)}
               >
                 <option value="" disabled>Pilih Lantai</option>
-                {floors.map((f) => (
+                {floors.filter(f => !f.startsWith("submap_")).map((f) => (
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
               <ChevronIcon />
             </div>
             {floor && (
-              <div className="floor-selected-chip">{floor}</div>
+              <div className="floor-selected-chip">
+                {(() => {
+                  if (floor.startsWith("submap_")) {
+                    const parentId = floor.replace("submap_", "");
+                    const parent = rooms.find(r => r.id === parentId);
+                    return parent ? parent.floor : "Lantai 1";
+                  }
+                  return floor;
+                })()}
+              </div>
             )}
           </div>
 
         </aside>
 
-        <main className="map-panel">
+        <main className="map-panel" style={{ position: "relative" }}>
+          {floor.startsWith("submap_") && (
+              <button 
+                  onClick={() => {
+                      const parentRoomId = floor.replace("submap_", "");
+                      const parentRoom = rooms.find(r => r.id === parentRoomId);
+                      setFloor(parentRoom ? parentRoom.floor : floors[0]);
+                  }}
+                  style={{ position: "absolute", top: "20px", left: "20px", zIndex: 100, padding: "10px 20px", background: "#FF9800", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+              >
+                  🔙 Kembali ke Lantai Utama
+              </button>
+          )}
           <TransformWrapper initialScale={1} minScale={0.5} maxScale={5} centerOnInit={true}>
             <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }} contentStyle={{ width: "100%", height: "100vh" }}>
               <div className="map-content" style={{ width: "100%", height: "100%" }}>
-                <SharedMap path={pathData} currentFloor={floor} />
+                <SharedMap 
+                  path={pathData} 
+                  currentFloor={floor} 
+                  onRoomClick={(room) => {
+                      if (floors.includes(`submap_${room.id}`)) {
+                          setFloor(`submap_${room.id}`);
+                      }
+                  }}
+                />
               </div>
             </TransformComponent>
           </TransformWrapper>

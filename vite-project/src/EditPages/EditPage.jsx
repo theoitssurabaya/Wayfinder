@@ -200,7 +200,7 @@ export default function EditPage() {
 
         roomsSnapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          if (data.floor) uniqueFloors.add(data.floor);
+          if (data.floor && !data.floor.startsWith("submap_")) uniqueFloors.add(data.floor);
           allElements.push({
             id: docSnap.id,
             type: 'room',
@@ -216,7 +216,7 @@ export default function EditPage() {
 
         kioskSnapshot.forEach((docSnap) => {
           const data = docSnap.data();
-          if (data.floor) uniqueFloors.add(data.floor);
+          if (data.floor && !data.floor.startsWith("submap_")) uniqueFloors.add(data.floor);
           allElements.push({
             id: docSnap.id,
             type: 'kiosk',
@@ -466,6 +466,18 @@ export default function EditPage() {
     <div className="edit-page-container">
       <header className="edit-page-header">
         <span className="edit-page-logo">Wayfinder - Editor</span>
+        {activeEditFloor.startsWith("submap_") && (
+            <button 
+                onClick={() => {
+                    const parentRoomId = activeEditFloor.replace("submap_", "");
+                    const parentRoom = placedElements.find(el => el.id === parentRoomId);
+                    setActiveEditFloor(parentRoom ? parentRoom.floor : floors[0]);
+                }}
+                style={{ padding: "8px 15px", background: "#FF9800", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", marginLeft: "20px" }}
+            >
+                🔙 Kembali ke Lantai Utama
+            </button>
+        )}
         <div className="edit-page-actions">
           <button className="edit-page-btn cancel" onClick={() => setIsConfirmOpen(true)}>Cancel</button>
           <button className="edit-page-btn save" onClick={() => { setConfirmAction("save"); setIsConfirmOpen(true); }}>Save</button>
@@ -589,7 +601,33 @@ export default function EditPage() {
                    saveHistory(newElements); 
                };
                return (
-                   <div className="endpoint-controls" style={{marginTop: "15px", background: "#f9f9f9", padding: "10px", borderRadius: "5px", border: "1px solid #ddd"}}>
+                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                       <button 
+                           onClick={() => {
+                               const submapId = `submap_${room.id}`;
+                               setActiveEditFloor(submapId);
+                               setSelectedId(null);
+                               
+                               const hasPintuMasuk = placedElements.some(el => el.floor === submapId && el.name.toLowerCase() === 'pintu masuk');
+                               if (!hasPintuMasuk) {
+                                   const newId = generateNextKioskId();
+                                   const newElements = [...placedElements, {
+                                       id: newId, type: 'kiosk',
+                                       floor: submapId,
+                                       x: 200, y: 200,
+                                       width: GRID_SIZE * 2, height: GRID_SIZE * 2,
+                                       name: "Pintu Masuk", fill: "#FF9800", stroke: "#E65100"
+                                   }];
+                                   setPlacedElements(newElements);
+                                   saveHistory(newElements);
+                               }
+                           }}
+                           style={{ width: "100%", padding: "10px", backgroundColor: "#2196F3", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
+                       >
+                           Masuk ke Bagian Dalam (Sub-Map)
+                       </button>
+                       
+                       <div className="endpoint-controls" style={{background: "#f9f9f9", padding: "10px", borderRadius: "5px", border: "1px solid #ddd"}}>
                        <h4 style={{margin: "0 0 10px 0", fontSize: "14px", color: "#B71C1C"}}>📍 Sisi Endpoint Aktif</h4>
                        <p style={{fontSize: "11px", color: "#666", marginBottom: "6px"}}>Ubah manual jika template tidak sesuai:</p>
                        <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", background: "#fff", padding: "8px", borderRadius: "4px", border: "1px solid #eee"}}>
@@ -612,6 +650,7 @@ export default function EditPage() {
                                );
                            })}
                        </div>
+                        </div>
                    </div>
                );
             })()}

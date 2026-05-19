@@ -51,7 +51,7 @@ function getPointAtDistance(pathPoints, distance) {
   return { x: lastX, y: lastY, angle: 0 };
 }
 
-export default function SharedMap({ path = [], currentFloor = "Lantai 1" }) {
+export default function SharedMap({ path = [], currentFloor = "Lantai 1", onRoomClick }) {
   const [rooms, setRooms] = useState([]);
   const [kiosks, setKiosks] = useState([]);
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
@@ -188,7 +188,13 @@ export default function SharedMap({ path = [], currentFloor = "Lantai 1" }) {
                 const fontSize = Math.max(5, Math.min(room.width / 4, room.height / 2.5, (usableWidth * 2.5) / textLen));
                 
                 return (
-                  <React.Fragment key={room.id}>
+                  <Group 
+                      key={room.id}
+                      onClick={() => onRoomClick && onRoomClick(room)}
+                      onTap={() => onRoomClick && onRoomClick(room)}
+                      onMouseEnter={(e) => { if (onRoomClick) { e.target.getStage().container().style.cursor = 'pointer'; } }}
+                      onMouseLeave={(e) => { if (onRoomClick) { e.target.getStage().container().style.cursor = 'default'; } }}
+                  >
                     <Rect x={room.x} y={room.y} width={room.width} height={room.height} fill="#f8f9fa" stroke="#dae0e5" strokeWidth={2} />
                     
                     <Text 
@@ -198,7 +204,7 @@ export default function SharedMap({ path = [], currentFloor = "Lantai 1" }) {
                         align="center" verticalAlign="middle" padding={5} 
                         wrap="word" ellipsis={false} 
                     />
-                  </React.Fragment>
+                  </Group>
                 );
             })}
 
