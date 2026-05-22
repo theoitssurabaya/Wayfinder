@@ -99,7 +99,7 @@ export default function App() {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       
-      langkahNavigasi.forEach((step) => {
+      langkahNavigasi.forEach((step, index) => {
         const utterance = new SpeechSynthesisUtterance(step.teks);
         utterance.lang = 'id-ID';
         utterance.rate = 1.15;
@@ -108,6 +108,21 @@ export default function App() {
             setFloor(step.floor);
           }
         };
+
+        // Reset setelah langkah terakhir selesai dibacakan + 3 detik
+        if (index === langkahNavigasi.length - 1) {
+          utterance.onend = () => {
+            setTimeout(() => {
+              setSearch("");
+              setOutputText("");
+              setLocation("");
+              setFloor("Lantai 1");
+              setPathData([]);
+              setTargetRoomName("");
+            }, 3000);
+          };
+        }
+
         window.speechSynthesis.speak(utterance);
       });
     }
