@@ -473,9 +473,9 @@ export default function EditPage() {
                     const parentRoom = placedElements.find(el => el.id === parentRoomId);
                     setActiveEditFloor(parentRoom ? parentRoom.floor : floors[0]);
                 }}
-                style={{ padding: "8px 15px", background: "#FF9800", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", marginLeft: "20px" }}
+                style={{ padding: "8px 15px", background: "#1A73C8", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", marginLeft: "20px" }}
             >
-                🔙 Kembali ke Lantai Utama
+                Kembali ke Lantai Utama
             </button>
         )}
         <div className="edit-page-actions">

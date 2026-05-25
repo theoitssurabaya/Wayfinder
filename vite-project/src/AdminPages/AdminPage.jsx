@@ -131,7 +131,7 @@ export default function App() {
               setNavigationSteps([]);
               setActiveStepIndex(-1);
               setTargetRoomName("");
-            }, 3000);
+            }, 10000);
           };
         }
 
@@ -153,7 +153,7 @@ export default function App() {
 
     setOutputText("Mencari rute...");
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/route", {
+      const response = await fetch("/api/route", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -359,9 +359,9 @@ export default function App() {
                       const parentRoom = rooms.find(r => r.id === parentRoomId);
                       setFloor(parentRoom?.floor || "Lantai 1");
                   }}
-                  style={{ position: "absolute", top: "20px", left: "20px", zIndex: 100, padding: "10px 20px", background: "#FF9800", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+                  style={{ position: "absolute", top: "20px", left: "20px", zIndex: 100, padding: "10px 20px", background: "#1A73C8", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
               >
-                  🔙 Kembali ke Lantai Utama
+                  Kembali ke Lantai Utama
               </button>
           )}
           <TransformWrapper initialScale={1} minScale={0.5} maxScale={5} centerOnInit={true}>

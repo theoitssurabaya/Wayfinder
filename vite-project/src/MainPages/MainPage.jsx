@@ -32,18 +32,43 @@ export default function App() {
   const navigate = useNavigate();
   const [search,      setSearch]      = useState("");
   const [outputText,  setOutputText]  = useState("");
-  const [location,    setLocation]    = useState(""); 
+  
+  // ── STATE KIOSK LOCK ──
+  const [location,    setLocation]    = useState(localStorage.getItem("locked_kiosk_id") || ""); 
+  const [isKioskLocked, setIsKioskLocked] = useState(!!localStorage.getItem("locked_kiosk_id"));
+
   const [floor,       setFloor]       = useState("Lantai 1"); 
   const [floors,      setFloors]      = useState(["Lantai 1"]); 
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [username,    setUsername]    = useState("");
   const [password,    setPassword]    = useState("");
   const [kiosks,      setKiosks]      = useState([]);
-  const [rooms,       setRooms]       = useState([]); // STATE BARU: Daftar Ruangan
+  const [rooms,       setRooms]       = useState([]); 
   const [pathData,    setPathData]    = useState([]);
   const [targetRoomName, setTargetRoomName] = useState("");
   const [navigationSteps, setNavigationSteps] = useState([]);
   const [activeStepIndex, setActiveStepIndex] = useState(-1);
+
+  // ── FITUR LOCK DEVICE SEBAGAI KIOSK FISIK ──
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const lockId = params.get("set_kiosk");
+    const unlock = params.get("unlock_kiosk");
+
+    if (lockId) {
+      localStorage.setItem("locked_kiosk_id", lockId);
+      setLocation(lockId);
+      setIsKioskLocked(true);
+      alert(`Perangkat ini berhasil dikunci permanen sebagai Kiosk: ${lockId}`);
+      window.history.replaceState(null, "", window.location.pathname);
+    } else if (unlock === "true") {
+      localStorage.removeItem("locked_kiosk_id");
+      setLocation("");
+      setIsKioskLocked(false);
+      alert("Mode Kiosk dilepas. Perangkat kembali ke mode normal.");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
 
   useEffect(() => {
     // 1. Listen ke Kiosks
@@ -115,13 +140,18 @@ export default function App() {
             setTimeout(() => {
               setSearch("");
               setOutputText("");
-              setLocation("");
+              
+              // KUNCI: Jangan reset location jika statusnya terkunci (Locked)
+              if (!isKioskLocked) {
+                setLocation("");
+              }
+              
               setFloor("Lantai 1");
               setPathData([]);
               setNavigationSteps([]);
               setActiveStepIndex(-1);
               setTargetRoomName("");
-            }, 3000);
+            }, 10000);
           };
         }
 
@@ -130,7 +160,6 @@ export default function App() {
     }
   };
 
-  // FUNGSI DIPERBARUI: Menerima parameter lokasi dan target
   const executeSearch = async (overrideLocation, overrideTarget) => {
     const searchLocation = typeof overrideLocation === 'string' ? overrideLocation : location;
     const searchTarget = typeof overrideTarget === 'string' ? overrideTarget : search;
@@ -144,7 +173,7 @@ export default function App() {
 
     setOutputText("Mencari rute...");
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/route", {
+      const response = await fetch("/api/route", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -155,7 +184,17 @@ export default function App() {
         })
       });
       
-      const data = await response.json();
+      const textResponse = await response.text();
+      
+      let data;
+      try {
+          // Baru coba ubah teks tersebut ke JSON
+          data = JSON.parse(textResponse);
+      } catch (parseError) {
+          // Jika gagal, berarti Python mengirim error atau blank. Tampilkan aslinya!
+          console.error("Server tidak mengembalikan JSON yang valid:", textResponse);
+          throw new Error(`Server Backend Crash/Mati. Cek terminal Python! Respons: ${textResponse.substring(0, 50)}`);
+      }
       
       if (!response.ok) {
         setOutputText(`Gagal: ${data.detail || "Terjadi kesalahan"}`);
@@ -273,38 +312,43 @@ export default function App() {
             style={{ minHeight: "100px", marginTop: "15px" }}
           />
 
-          {/* KIOSK DROPDOWN */}
-          <div className="dropdown-wrapper">
-            <select
-              className="dropdown-select"
-              value={location}
-              onChange={(e) => {
-                const newLocation = e.target.value;
-                setLocation(newLocation);
-                if (search.trim()) {
-                  executeSearch(newLocation, search);
-                }
-              }}
-            >
-              <option value="" disabled>Pilih Kiosk Awal</option>
-              {kiosks.map((kiosk) => (
-                <option key={kiosk.id} value={kiosk.id}>
-                  {kiosk.name || kiosk.id}
-                </option>
-              ))}
-            </select>
-            <ChevronIcon />
-          </div>
+          {/* KIOSK DROPDOWN ATAU LOCKED KIOSK INFO */}
+          {isKioskLocked ? (
+            <div className="dropdown-wrapper" style={{ padding: "12px", background: "#e3f2fd", borderRadius: "8px", border: "1px solid #bbdefb", color: "#0d47a1", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
+              📍 Anda berada di: {kiosks.find(k => k.id === location)?.name || location}
+            </div>
+          ) : (
+            <div className="dropdown-wrapper">
+              <select
+                className="dropdown-select"
+                value={location}
+                onChange={(e) => {
+                  const newLocation = e.target.value;
+                  setLocation(newLocation);
+                  if (search.trim()) {
+                    executeSearch(newLocation, search);
+                  }
+                }}
+              >
+                <option value="" disabled>Pilih Kiosk Awal</option>
+                {kiosks.map((kiosk) => (
+                  <option key={kiosk.id} value={kiosk.id}>
+                    {kiosk.name || kiosk.id}
+                  </option>
+                ))}
+              </select>
+              <ChevronIcon />
+            </div>
+          )}
 
-          {/* RUANGAN DROPDOWN (BARU) */}
+          {/* RUANGAN DROPDOWN */}
           <div className="dropdown-wrapper" style={{ marginTop: "12px" }}>
             <select
               className="dropdown-select"
-              // Set value blank jika teks search diketik custom dan tidak ada di dropdown
               value={rooms.some(r => r.name === search) ? search : ""}
               onChange={(e) => {
                 const newTarget = e.target.value;
-                setSearch(newTarget); // Sinkronkan dropdown ke kotak teks
+                setSearch(newTarget); 
                 executeSearch(location, newTarget);
               }}
             >
@@ -361,9 +405,9 @@ export default function App() {
                       const parentRoom = rooms.find(r => r.id === parentRoomId);
                       setFloor(parentRoom?.floor || "Lantai 1");
                   }}
-                  style={{ position: "absolute", top: "20px", left: "20px", zIndex: 100, padding: "10px 20px", background: "#FF9800", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
+                  style={{ position: "absolute", top: "20px", left: "20px", zIndex: 100, padding: "10px 20px", background: "#1A73C8", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
               >
-                  🔙 Kembali ke Lantai Utama
+                  Kembali ke Lantai Utama
               </button>
           )}
           <TransformWrapper initialScale={1} minScale={0.5} maxScale={5} centerOnInit={true}>
