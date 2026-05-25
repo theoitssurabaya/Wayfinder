@@ -121,7 +121,7 @@ export default function App() {
               setNavigationSteps([]);
               setActiveStepIndex(-1);
               setTargetRoomName("");
-            }, 3000);
+            }, 10000);
           };
         }
 
