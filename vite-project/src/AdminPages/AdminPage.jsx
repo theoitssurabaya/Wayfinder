@@ -176,7 +176,7 @@ export default function App() {
         setTargetRoomName(roomName);
         setPathData(data.jalur_koordinat);
         setNavigationSteps(data.langkah_navigasi);
-        setActiveStepIndex(-1);
+        setActiveStepIndex(0);
         
         let allText = "Teks navigasi tidak tersedia.";
         if (data.langkah_navigasi && data.langkah_navigasi.length > 0) {
@@ -308,7 +308,9 @@ export default function App() {
               }}
             >
               <option value="" disabled>Pilih Ruangan Tujuan</option>
-              {rooms.map((room) => (
+              {rooms
+                .filter(room => room.floor === floor)
+                .map((room) => (
                 <option key={room.id} value={room.name}>{room.name}</option>
               ))}
             </select>

@@ -235,7 +235,7 @@ def generate_navigation_text(path, start_id, target_id):
                 parent_name = RUANGAN_GRID.get(parent_id, {}).get("name", "Ruangan Induk")
                 teks_transisi = f"Keluar dari {parent_name}."
             else:
-                teks_transisi = f"Gunakan Lift/Tangga untuk menuju ke {p2['floor']}."
+                teks_transisi = f"Gunakan Lift untuk menuju ke {p2['floor']}."
                 
             langkah.append({
                 "teks": teks_transisi,
