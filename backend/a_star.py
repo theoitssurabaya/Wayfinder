@@ -87,9 +87,9 @@ def get_pintu_masuk(floor_name):
             return room
     return None
 
-def cari_rute_grid(start_id, target_id):
+def cari_rute_grid(start_id, target_id, language="id"):
     if start_id not in RUANGAN_GRID or target_id not in RUANGAN_GRID:
-        return {"status": "error", "pesan": "Titik awal atau tujuan tidak valid di peta."}
+        return {"status": "error", "pesan": "Titik awal atau tujuan tidak valid di peta." if language == "id" else "Start or destination point is invalid on the map."}
 
     start_node = RUANGAN_GRID[start_id]
     target_node = RUANGAN_GRID[target_id]
@@ -109,11 +109,13 @@ def cari_rute_grid(start_id, target_id):
         pintu_masuk = get_pintu_masuk(curr_floor)
         
         if not parent_room or not pintu_masuk:
-            return {"status": "error", "pesan": "Sub-Map awal tidak memiliki Pintu Masuk atau Induk yang valid."}
+            msg = "Sub-Map awal tidak memiliki Pintu Masuk atau Induk yang valid." if language == "id" else "Starting Sub-Map does not have a valid Entrance or Parent room."
+            return {"status": "error", "pesan": msg}
             
         jalur = _a_star_single_floor(curr_node, pintu_masuk)
         if not jalur:
-            return {"status": "error", "pesan": "Rute buntu menuju pintu keluar sub-map."}
+            msg = "Rute buntu menuju pintu keluar sub-map." if language == "id" else "Dead end route to sub-map exit."
+            return {"status": "error", "pesan": msg}
         phases.extend(jalur)
         
         curr_node = parent_room
@@ -130,7 +132,8 @@ def cari_rute_grid(start_id, target_id):
         target_pintu_masuk = get_pintu_masuk(target_floor)
         
         if not target_parent_room or not target_pintu_masuk:
-            return {"status": "error", "pesan": "Sub-Map tujuan tidak memiliki Pintu Masuk atau Induk yang valid."}
+            msg = "Sub-Map tujuan tidak memiliki Pintu Masuk atau Induk yang valid." if language == "id" else "Destination Sub-Map does not have a valid Entrance or Parent room."
+            return {"status": "error", "pesan": msg}
         actual_target_floor = target_parent_room.get("floor", "Lantai 1")
         
     # 3. Pindah lantai via Lift (jika beda lantai standar)
@@ -140,11 +143,13 @@ def cari_rute_grid(start_id, target_id):
         lift_target = find_nearest_lift(temp_target)
         
         if not lift_start or not lift_target:
-            return {"status": "error", "pesan": f"Tidak ditemukan Lift/Tangga antar {curr_floor} dan {actual_target_floor}."}
+            msg = f"Tidak ditemukan Lift/Tangga antar {curr_floor} dan {actual_target_floor}." if language == "id" else f"No Elevator/Stairs found between {curr_floor} and {actual_target_floor}."
+            return {"status": "error", "pesan": msg}
             
         jalur_1 = _a_star_single_floor(curr_node, lift_start)
         if not jalur_1:
-            return {"status": "error", "pesan": f"Rute buntu menuju lift di {curr_floor}."}
+            msg = f"Rute buntu menuju lift di {curr_floor}." if language == "id" else f"Dead end route to elevator on {curr_floor}."
+            return {"status": "error", "pesan": msg}
         phases.extend(jalur_1)
         
         curr_node = lift_target
@@ -154,17 +159,19 @@ def cari_rute_grid(start_id, target_id):
     temp_target = target_parent_room if target_parent_room else target_node
     jalur_2 = _a_star_single_floor(curr_node, temp_target)
     if not jalur_2:
-        return {"status": "error", "pesan": f"Rute buntu menuju tujuan di {curr_floor}."}
+        msg = f"Rute buntu menuju tujuan di {curr_floor}." if language == "id" else f"Dead end route to destination on {curr_floor}."
+        return {"status": "error", "pesan": msg}
     phases.extend(jalur_2)
     
     # 5. Masuk ke sub-map tujuan (jika ada)
     if target_parent_room:
         jalur_3 = _a_star_single_floor(target_pintu_masuk, target_node)
         if not jalur_3:
-            return {"status": "error", "pesan": "Rute buntu di dalam sub-map tujuan."}
+            msg = "Rute buntu di dalam sub-map tujuan." if language == "id" else "Dead end route inside destination sub-map."
+            return {"status": "error", "pesan": msg}
         phases.extend(jalur_3)
         
-    nav_text = generate_navigation_text(phases, start_id, target_id)
+    nav_text = generate_navigation_text(phases, start_id, target_id, language)
     return {
         "status": "success",
         "jalur_grid": phases,
@@ -191,9 +198,10 @@ def get_adjacent_room(x, y, exclude_ids=None):
                 return room["name"]
     return None
 
-def generate_navigation_text(path, start_id, target_id):
+def generate_navigation_text(path, start_id, target_id, language="id"):
     if not path or len(path) < 2:
-        return [{"teks": "Anda sudah sampai di tujuan.", "index_akhir": len(path) - 1 if path else 0, "floor": path[0]["floor"] if path else "Lantai 1"}]
+        msg = "Anda sudah sampai di tujuan." if language == "id" else "You have reached your destination."
+        return [{"teks": msg, "index_akhir": len(path) - 1 if path else 0, "floor": path[0]["floor"] if path else "Lantai 1"}]
 
     start_name = RUANGAN_GRID.get(start_id, {}).get("name", "Kiosk")
     target_name = RUANGAN_GRID.get(target_id, {}).get("name", "Tujuan")
@@ -210,13 +218,22 @@ def generate_navigation_text(path, start_id, target_id):
 
     def get_turn(prev_dir, next_dir):
         if prev_dir == next_dir: return None
-        turns = {
+        turns_id = {
             'Atas': {'Kanan': 'Kanan', 'Kiri': 'Kiri'},
             'Bawah': {'Kanan': 'Kiri', 'Kiri': 'Kanan'},
             'Kanan': {'Atas': 'Kiri', 'Bawah': 'Kanan'},
             'Kiri': {'Atas': 'Kanan', 'Bawah': 'Kiri'}
         }
-        return turns.get(prev_dir, {}).get(next_dir, 'Berbalik Arah')
+        turns_en = {
+            'Atas': {'Kanan': 'Right', 'Kiri': 'Left'},
+            'Bawah': {'Kanan': 'Left', 'Kiri': 'Right'},
+            'Kanan': {'Atas': 'Left', 'Bawah': 'Right'},
+            'Kiri': {'Atas': 'Right', 'Bawah': 'Left'}
+        }
+        
+        turn_map = turns_id if language == "id" else turns_en
+        fallback = "Berbalik Arah" if language == "id" else "Turn around"
+        return turn_map.get(prev_dir, {}).get(next_dir, fallback)
 
     exclude_ids = {start_id, target_id}
 
@@ -229,13 +246,13 @@ def generate_navigation_text(path, start_id, target_id):
             if p2["floor"].startswith("submap_"):
                 parent_id = p2["floor"].replace("submap_", "")
                 parent_name = RUANGAN_GRID.get(parent_id, {}).get("name", "Ruangan Induk")
-                teks_transisi = f"Masuk ke dalam {parent_name}."
+                teks_transisi = f"Masuk ke dalam {parent_name}." if language == "id" else f"Enter {parent_name}."
             elif p1["floor"].startswith("submap_"):
                 parent_id = p1["floor"].replace("submap_", "")
                 parent_name = RUANGAN_GRID.get(parent_id, {}).get("name", "Ruangan Induk")
-                teks_transisi = f"Keluar dari {parent_name}."
+                teks_transisi = f"Keluar dari {parent_name}." if language == "id" else f"Exit from {parent_name}."
             else:
-                teks_transisi = f"Gunakan Lift untuk menuju ke {p2['floor']}."
+                teks_transisi = f"Gunakan Lift untuk menuju ke {p2['floor']}." if language == "id" else f"Use the Lift to go to {p2['floor']}."
                 
             langkah.append({
                 "teks": teks_transisi,
@@ -255,20 +272,25 @@ def generate_navigation_text(path, start_id, target_id):
             adj_room = get_adjacent_room(p1["x"], p1["y"], exclude_ids)
             
             if len(langkah) == 0:
-                prefix = f"Dari {start_name}, berjalanlah ke arah {current_dir}"
+                if language == "id": prefix = f"Dari {start_name}, berjalanlah ke arah {current_dir}"
+                else: prefix = f"From {start_name}, walk {'North/Up' if current_dir=='Atas' else 'South/Down' if current_dir=='Bawah' else 'East/Right' if current_dir=='Kanan' else 'West/Left'}"
             elif is_after_transition:
                 if p1['floor'].startswith("submap_"):
-                    prefix = f"Setelah masuk, berjalanlah ke arah {current_dir}"
+                    if language == "id": prefix = f"Setelah masuk, berjalanlah ke arah {current_dir}"
+                    else: prefix = f"After entering, walk {'North/Up' if current_dir=='Atas' else 'South/Down' if current_dir=='Bawah' else 'East/Right' if current_dir=='Kanan' else 'West/Left'}"
                 else:
-                    prefix = f"Setelah keluar di {p1['floor']}, berjalanlah ke arah {current_dir}"
+                    if language == "id": prefix = f"Setelah keluar di {p1['floor']}, berjalanlah ke arah {current_dir}"
+                    else: prefix = f"After exiting at {p1['floor']}, walk {'North/Up' if current_dir=='Atas' else 'South/Down' if current_dir=='Bawah' else 'East/Right' if current_dir=='Kanan' else 'West/Left'}"
                 is_after_transition = False
             else:
-                prefix = f"Setelah belok, lurus terus"
+                prefix = "Setelah belok, lurus terus" if language == "id" else "After turning, go straight"
                 
             if adj_room:
-                teks = f"{prefix} sampai ketemu {adj_room}, lalu bersiap belok {turn}."
+                if language == "id": teks = f"{prefix} sampai ketemu {adj_room}, lalu bersiap belok {turn}."
+                else: teks = f"{prefix} until you see {adj_room}, then prepare to turn {turn}."
             else:
-                teks = f"{prefix} sampai persimpangan, lalu bersiap belok {turn}."
+                if language == "id": teks = f"{prefix} sampai persimpangan, lalu bersiap belok {turn}."
+                else: teks = f"{prefix} until the intersection, then prepare to turn {turn}."
             
             langkah.append({
                 "teks": teks,
@@ -279,14 +301,17 @@ def generate_navigation_text(path, start_id, target_id):
             current_dir = dir
 
     if len(langkah) == 0:
-        teks_akhir = f"Dari {start_name}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
+        if language == "id": teks_akhir = f"Dari {start_name}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
+        else: teks_akhir = f"From {start_name}, walk {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
     elif is_after_transition:
         if path[-1]['floor'].startswith("submap_"):
-            teks_akhir = f"Setelah masuk, lurus ke arah {current_dir} dan Anda akan sampai di {target_name}."
+            if language == "id": teks_akhir = f"Setelah masuk, lurus ke arah {current_dir} dan Anda akan sampai di {target_name}."
+            else: teks_akhir = f"After entering, go straight {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
         else:
-            teks_akhir = f"Dari Lift di {path[-1]['floor']}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
+            if language == "id": teks_akhir = f"Dari Lift di {path[-1]['floor']}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
+            else: teks_akhir = f"From the Lift at {path[-1]['floor']}, walk {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
     else:
-        teks_akhir = f"Setelah belok, lurus terus dan Anda akan sampai di {target_name}."
+        teks_akhir = f"Setelah belok, lurus terus dan Anda akan sampai di {target_name}." if language == "id" else f"After turning, go straight and you will arrive at {target_name}."
 
     langkah.append({
         "teks": teks_akhir,

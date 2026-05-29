@@ -4,6 +4,7 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import SharedMap from "../components/SharedMap";
+import { translateName } from "../utils/translator";
 import "./Main.css";
 
 // ── Icon components ──
@@ -48,6 +49,36 @@ export default function App() {
   const [targetRoomName, setTargetRoomName] = useState("");
   const [navigationSteps, setNavigationSteps] = useState([]);
   const [activeStepIndex, setActiveStepIndex] = useState(-1);
+  const [language, setLanguage] = useState(localStorage.getItem('language') || 'id');
+
+  const getText = (key) => {
+    const dict = {
+      'login': { id: 'Masuk', en: 'Login' },
+      'search_placeholder': { id: 'Cari tujuan...', en: 'Search destination...' },
+      'output_placeholder': { id: 'Keterangan rute akan muncul di sini', en: 'Destination output text will appear here' },
+      'select_kiosk': { id: 'Pilih Kiosk Awal', en: 'Select Start Kiosk' },
+      'select_room': { id: 'Pilih Ruangan Tujuan', en: 'Select Destination Room' },
+      'select_floor': { id: 'Pilih Lantai', en: 'Select Floor' },
+      'you_are_here': { id: '📍 Anda berada di:', en: '📍 You are at:' },
+      'fail_kiosk_first': { id: 'Silakan pilih Kiosk awal terlebih dahulu.', en: 'Please select a starting Kiosk first.' },
+      'searching': { id: 'Mencari rute...', en: 'Searching for route...' },
+      'failed': { id: 'Gagal:', en: 'Failed:' },
+      'route_found': { id: 'Rute ditemukan!', en: 'Route found!' },
+      'towards': { id: 'Menuju:', en: 'Towards:' },
+      'no_nav_text': { id: 'Teks navigasi tidak tersedia.', en: 'Navigation text is not available.' },
+      'admin_login_title': { id: 'HALAMAN LOGIN ADMIN', en: 'ADMIN LOGIN PAGE' },
+      'username': { id: 'Nama Pengguna', en: 'Username' },
+      'password': { id: 'Kata Sandi', en: 'Password' },
+      'login_btn': { id: 'MASUK', en: 'LOGIN' }
+    };
+    return dict[key] ? dict[key][language] : key;
+  };
+
+  const toggleLanguage = () => {
+    const newLang = language === 'id' ? 'en' : 'id';
+    setLanguage(newLang);
+    localStorage.setItem('language', newLang);
+  };
 
   // ── FITUR LOCK DEVICE SEBAGAI KIOSK FISIK ──
   useEffect(() => {
@@ -58,17 +89,24 @@ export default function App() {
     if (lockId) {
       localStorage.setItem("locked_kiosk_id", lockId);
       setLocation(lockId);
-      setIsKioskLocked(true);
-      alert(`Perangkat ini berhasil dikunci permanen sebagai Kiosk: ${lockId}`);
+      if (language === 'en') {
+        alert(`This device is now permanently locked as Kiosk: ${lockId}`);
+      } else {
+        alert(`Perangkat ini berhasil dikunci permanen sebagai Kiosk: ${lockId}`);
+      }
       window.history.replaceState(null, "", window.location.pathname);
     } else if (unlock === "true") {
       localStorage.removeItem("locked_kiosk_id");
       setLocation("");
       setIsKioskLocked(false);
-      alert("Mode Kiosk dilepas. Perangkat kembali ke mode normal.");
+      if (language === 'en') {
+        alert("Kiosk mode released. Device is back to normal mode.");
+      } else {
+        alert("Mode Kiosk dilepas. Perangkat kembali ke mode normal.");
+      }
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, []);
+  }, [language]);
 
   useEffect(() => {
     // 1. Listen ke Kiosks
@@ -125,7 +163,7 @@ export default function App() {
       
       langkahNavigasi.forEach((step, index) => {
         const utterance = new SpeechSynthesisUtterance(step.teks);
-        utterance.lang = 'id-ID';
+        utterance.lang = language === 'en' ? 'en-US' : 'id-ID';
         utterance.rate = 1.15;
         utterance.onstart = () => {
           setActiveStepIndex(index);
@@ -167,11 +205,11 @@ export default function App() {
     if (!searchTarget.trim()) return;
     
     if (!searchLocation) {
-      setOutputText("Silakan pilih Kiosk awal terlebih dahulu.");
+      setOutputText(getText('fail_kiosk_first'));
       return;
     }
 
-    setOutputText("Mencari rute...");
+    setOutputText(getText('searching'));
     try {
       const response = await fetch("/api/route", {
         method: "POST",
@@ -180,7 +218,8 @@ export default function App() {
         },
         body: JSON.stringify({
           start_node_id: searchLocation,
-          teks_pencarian: searchTarget.trim()
+          teks_pencarian: searchTarget.trim(),
+          language: language
         })
       });
       
@@ -197,25 +236,25 @@ export default function App() {
       }
       
       if (!response.ok) {
-        setOutputText(`Gagal: ${data.detail || "Terjadi kesalahan"}`);
+        setOutputText(`${getText('failed')} ${data.detail || "Terjadi kesalahan"}`);
         setPathData([]);
         setNavigationSteps([]);
         setActiveStepIndex(-1);
       } else {
-        const roomName = data.data_target.nama_ruangan;
+        const roomName = translateName(data.data_target.nama_ruangan, language);
         setTargetRoomName(roomName);
         setPathData(data.jalur_koordinat);
         setNavigationSteps(data.langkah_navigasi);
         setActiveStepIndex(0);
         
-        let allText = "Teks navigasi tidak tersedia.";
+        let allText = getText('no_nav_text');
         if (data.langkah_navigasi && data.langkah_navigasi.length > 0) {
             allText = data.langkah_navigasi.map(l => l.teks).join("\n\n");
-            const finalText = `Rute ditemukan!\nMenuju: ${roomName}\n\n${allText}`;
+            const finalText = `${getText('route_found')}\n${getText('towards')} ${roomName}\n\n${allText}`;
             setOutputText(finalText);
             speakSteps(data.langkah_navigasi);
         } else {
-            const fallbackText = `Rute ditemukan menuju ${roomName}`;
+            const fallbackText = `${getText('route_found')} ${getText('towards')} ${roomName}`;
             setOutputText(fallbackText);
             
             if (data.jalur_koordinat && data.jalur_koordinat.length > 0 && data.jalur_koordinat[0].floor) {
@@ -225,7 +264,7 @@ export default function App() {
             if ('speechSynthesis' in window) {
               window.speechSynthesis.cancel();
               const utterance = new SpeechSynthesisUtterance(fallbackText);
-              utterance.lang = 'id-ID';
+              utterance.lang = language === 'en' ? 'en-US' : 'id-ID';
               utterance.rate = 1.15;
               window.speechSynthesis.speak(utterance);
             }
@@ -263,26 +302,34 @@ export default function App() {
     <div>
       <header className="header">
         <span className="header-logo">Wayfinder</span>
-        <button className="header-login-btn Onclick" onClick={() => setIsLoginOpen(true)}>
-          <LoginIcon />
-          Login
-        </button>
+        <div style={{display: "flex", gap: "10px", alignItems: "center"}}>
+          <button 
+            onClick={toggleLanguage} 
+            style={{background: "transparent", border: "1px solid white", color: "white", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold"}}
+          >
+            {language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}
+          </button>
+          <button className="header-login-btn Onclick" onClick={() => setIsLoginOpen(true)}>
+            <LoginIcon />
+            {getText('login')}
+          </button>
+        </div>
       </header>
 
       {isLoginOpen && (
         <div className="modal-overlay" onClick={() => setIsLoginOpen(false)}>
           <div className="login-modal" onClick={(e) => e.stopPropagation()}>
             <button className="close-btn" onClick={() => setIsLoginOpen(false)}>×</button>
-            <h2>ADMIN LOGIN PAGE</h2>
+            <h2>{getText('admin_login_title')}</h2>
             <div className="input-group">
-              <label>Username</label>
+              <label>{getText('username')}</label>
               <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
             </div>
             <div className="input-group">
-              <label>Password</label>
+              <label>{getText('password')}</label>
               <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
             </div>
-            <button className="submit-login-btn" onClick={handleLogin}>LOGIN</button>
+            <button className="submit-login-btn" onClick={handleLogin}>{getText('login_btn')}</button>
           </div>
         </div>
       )}
@@ -294,7 +341,7 @@ export default function App() {
             <input
               className="search-input"
               type="text"
-              placeholder="Search destination"
+              placeholder={getText('search_placeholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleSearchKey}
@@ -306,7 +353,7 @@ export default function App() {
 
           <textarea
             className="destination-output"
-            placeholder="Destination output text"
+            placeholder={getText('output_placeholder')}
             value={outputText}
             readOnly
             style={{ minHeight: "100px", marginTop: "15px" }}
@@ -315,7 +362,7 @@ export default function App() {
           {/* KIOSK DROPDOWN ATAU LOCKED KIOSK INFO */}
           {isKioskLocked ? (
             <div className="dropdown-wrapper" style={{ padding: "12px", background: "#e3f2fd", borderRadius: "8px", border: "1px solid #bbdefb", color: "#0d47a1", fontWeight: "bold", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
-              📍 Anda berada di: {kiosks.find(k => k.id === location)?.name || location}
+              {getText('you_are_here')} {kiosks.find(k => k.id === location)?.name || location}
             </div>
           ) : (
             <div className="dropdown-wrapper">
@@ -330,10 +377,10 @@ export default function App() {
                   }
                 }}
               >
-                <option value="" disabled>Pilih Kiosk Awal</option>
+                <option value="" disabled>{getText('select_kiosk')}</option>
                 {kiosks.map((kiosk) => (
                   <option key={kiosk.id} value={kiosk.id}>
-                    {kiosk.name || kiosk.id}
+                    {translateName(kiosk.name || kiosk.id, language)}
                   </option>
                 ))}
               </select>
@@ -345,18 +392,26 @@ export default function App() {
           <div className="dropdown-wrapper" style={{ marginTop: "12px" }}>
             <select
               className="dropdown-select"
-              value={rooms.some(r => r.name === search) ? search : ""}
+              value={(() => {
+                const matchedRoom = rooms.find(r => r.name === search || translateName(r.name, language) === search);
+                return matchedRoom ? matchedRoom.name : "";
+              })()}
               onChange={(e) => {
-                const newTarget = e.target.value;
-                setSearch(newTarget); 
-                executeSearch(location, newTarget);
+                const rawName = e.target.value;
+                const translatedName = translateName(rawName, language);
+                setSearch(translatedName); 
+                executeSearch(location, rawName);
               }}
             >
-              <option value="" disabled>Pilih Ruangan Tujuan</option>
-              {rooms
-                .filter(room => room.floor === floor)
-                .map((room) => (
-                <option key={room.id} value={room.name}>{room.name}</option>
+              <option value="" disabled>{getText('select_room')}</option>
+              {floors.filter(f => !f.startsWith("submap_")).map((floorName) => (
+                <optgroup key={floorName} label={translateName(floorName, language)}>
+                  {rooms
+                    .filter(room => room.floor === floorName || room.floor.startsWith(`submap_${rooms.find(r=>r.name===room.name)?.id}`))
+                    .map((room) => (
+                    <option key={room.id} value={room.name}>{translateName(room.name, language)}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             <ChevronIcon />
@@ -376,9 +431,9 @@ export default function App() {
                 })()}
                 onChange={(e) => setFloor(e.target.value)}
               >
-                <option value="" disabled>Pilih Lantai</option>
+                <option value="" disabled>{getText('select_floor')}</option>
                 {floors.filter(f => !f.startsWith("submap_")).map((f) => (
-                  <option key={f} value={f}>{f}</option>
+                  <option key={f} value={f}>{translateName(f, language)}</option>
                 ))}
               </select>
               <ChevronIcon />
@@ -386,12 +441,13 @@ export default function App() {
             {floor && (
               <div className="floor-selected-chip">
                 {(() => {
+                  let dFloor = floor;
                   if (floor.startsWith("submap_")) {
                     const parentId = floor.replace("submap_", "");
                     const parent = rooms.find(r => r.id === parentId);
-                    return parent ? parent.floor : "Lantai 1";
+                    dFloor = parent ? parent.floor : "Lantai 1";
                   }
-                  return floor;
+                  return translateName(dFloor, language);
                 })()}
               </div>
             )}
@@ -412,13 +468,14 @@ export default function App() {
                   Kembali ke Lantai Utama
               </button>
           )}
-          <TransformWrapper initialScale={1} minScale={0.05} maxScale={10} centerOnInit={true} limitToBounds={false}>
+          <TransformWrapper initialScale={1} minScale={0.05} maxScale={10} centerOnInit={true} limitToBounds={false} wheel={{ step: 0.05 }}>
             <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }} contentStyle={{ width: "100%", height: "100vh" }}>
               <div className="map-content" style={{ width: "100%", height: "100%" }}>
                 <SharedMap 
                   path={pathData} 
-                  activePath={activePath}
+                  activePath={activePath} 
                   currentFloor={floor} 
+                  language={language}
                   onRoomClick={(room) => {
                       if (floors.includes(`submap_${room.id}`)) {
                           setFloor(`submap_${room.id}`);

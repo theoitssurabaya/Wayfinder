@@ -4,9 +4,10 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { Stage, Layer, Rect, Text, Line, Transformer } from "react-konva";
 import { collection, getDocs, doc, writeBatch } from "firebase/firestore";
 import { db } from "../firebase";
+import { translateName } from "../utils/translator";
 import "./Edit.css";
 
-const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggingElement, GRID_SIZE, originalElements }) => {
+const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggingElement, GRID_SIZE, originalElements, language }) => {
   const shapeRef = useRef();
   const trRef = useRef();
 
@@ -21,12 +22,26 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
     const typeLabel = shapeProps.type === 'kiosk' ? 'Kiosk' : 'Ruangan';
     const newName = window.prompt(`Masukkan Nama ${typeLabel}:`, shapeProps.name || "");
     if (newName !== null) {
+      const currentLang = localStorage.getItem('language') || 'id';
+      const englishKeywords = ['room', 'clinic', 'ward', 'pharmacy', 'emergency', 'lift', 'stairs', 'cashier', 'door'];
+      const indoKeywords = ['ruang', 'poli', 'rawat', 'farmasi', 'apotek', 'ugd', 'igd', 'tangga', 'kasir', 'pintu'];
+      
+      const lowerName = newName.toLowerCase();
+      const hasEnglish = englishKeywords.some(kw => lowerName.includes(kw));
+      const hasIndo = indoKeywords.some(kw => lowerName.includes(kw));
+      
+      if (currentLang === 'id' && hasEnglish && !hasIndo) {
+        alert("Anda sedang dalam mode Bahasa Indonesia (ID), namun Anda memasukkan nama dalam Bahasa Inggris. Tolong sesuaikan!");
+      } else if (currentLang === 'en' && hasIndo && !hasEnglish) {
+        alert("You are currently in English (EN) mode, but entered an Indonesian name. Please adjust accordingly!");
+      }
+
       onChange({ ...shapeProps, name: newName });
     }
   };
 
   // ── RUMUS BARU: AUTO SHRINK FONT ──
-  const textContent = shapeProps.name || (shapeProps.type === 'kiosk' ? 'Kiosk' : 'Tanpa Nama');
+  const textContent = translateName(shapeProps.name || (shapeProps.type === 'kiosk' ? 'Kiosk' : 'Tanpa Nama'), language);
   const textLen = textContent.length || 1;
   const usableWidth = shapeProps.width - 10;
   const dynamicFontSize = Math.max(
@@ -87,6 +102,7 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
         onClick={onSelect}
         onTap={onSelect}
         onDblClick={handleRename}
+        onDblTap={handleRename}
         ref={shapeRef}
         {...shapeProps}
         fill={visualColors.fill} 
@@ -170,6 +186,53 @@ export default function EditPage() {
   
   const [floors, setFloors] = useState(["Lantai 1"]);
   const [activeEditFloor, setActiveEditFloor] = useState("Lantai 1");
+  const [language, setLanguage] = useState(localStorage.getItem('language') || 'id');
+
+  const getText = (key) => {
+    const dict = {
+      'save_map': { id: 'Simpan Peta', en: 'Save Map' },
+      'cancel': { id: 'Batal', en: 'Cancel' },
+      'drag_drop_info': { id: 'Drag item ke dalam peta', en: 'Drag items into the map' },
+      'room': { id: 'Ruangan', en: 'Room' },
+      'kiosk': { id: 'Kiosk', en: 'Kiosk' },
+      'entrance': { id: 'Pintu Masuk', en: 'Entrance' },
+      'exit': { id: 'Pintu Keluar', en: 'Exit' },
+      'add_floor': { id: '+ Tambah', en: '+ Add' },
+      'del_floor': { id: 'Hapus', en: 'Delete' },
+      'save_confirm': { id: 'Konfirmasi Simpan', en: 'Confirm Save' },
+      'cancel_confirm': { id: 'Konfirmasi Batal', en: 'Confirm Cancel' },
+      'are_you_sure_save': { id: 'Apakah Anda yakin ingin menyimpan perubahan peta ke database?', en: 'Are you sure you want to save map changes to the database?' },
+      'are_you_sure_cancel': { id: 'Semua perubahan yang belum disimpan akan hilang. Lanjutkan?', en: 'All unsaved changes will be lost. Continue?' },
+      'yes': { id: 'Iya', en: 'Yes' },
+      'no': { id: 'Tidak', en: 'No' },
+      'edit_mode': { id: 'Mode Edit', en: 'Edit Mode' },
+      'floor_management': { id: 'Manajemen Lantai', en: 'Floor Management' },
+      'floors_count': { id: 'Lantai', en: 'Floors' },
+      'back_to_main_floor': { id: 'Kembali ke Lantai Utama', en: 'Back to Main Floor' },
+      'verification': { id: 'Verifikasi', en: 'Verification' },
+      'selected': { id: 'Terpilih', en: 'Selected' },
+      'no_element_selected': { id: 'Tidak ada elemen terpilih', en: 'No element selected' },
+      'edit_panel': { id: 'Panel Edit', en: 'Edit Panel' },
+      'template_elements': { id: 'Template Elemen', en: 'Element Templates' },
+      'template_hint': { id: 'Tarik template langsung ke peta.', en: 'Drag templates directly onto the map.' },
+      'drag_kiosk': { id: 'Tarik Kiosk', en: 'Drag Kiosk' },
+      'del_element': { id: 'Hapus Elemen (Del)', en: 'Delete Element (Del)' },
+      'enter_submap': { id: 'Masuk ke Bagian Dalam (Sub-Map)', en: 'Enter Inner Section (Sub-Map)' },
+      'active_endpoint_side': { id: '📍 Sisi Endpoint Aktif', en: '📍 Active Endpoint Side' },
+      'change_manual_hint': { id: 'Ubah manual jika template tidak sesuai:', en: 'Change manually if template does not fit:' },
+      'top': { id: 'Atas', en: 'Top' },
+      'bottom': { id: 'Bawah', en: 'Bottom' },
+      'left': { id: 'Kiri', en: 'Left' },
+      'right': { id: 'Kanan', en: 'Right' }
+    };
+    return dict[key] ? dict[key][language] : key;
+  };
+
+  const toggleLanguage = () => {
+    const newLang = language === 'id' ? 'en' : 'id';
+    setLanguage(newLang);
+    localStorage.setItem('language', newLang);
+  };
 
   const mapRef = useRef(null);
   const transformRef = useRef(null);
@@ -486,7 +549,13 @@ export default function EditPage() {
   return (
     <div className="edit-page-container">
       <header className="edit-page-header">
-        <span className="edit-page-logo">Wayfinder - Editor</span>
+        <span className="edit-page-logo">Wayfinder - {getText('edit_mode')}</span>
+        <button 
+          onClick={toggleLanguage} 
+          style={{background: "transparent", border: "1px solid white", color: "white", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", marginLeft: "15px"}}
+        >
+          {language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}
+        </button>
         {activeEditFloor.startsWith("submap_") && (
             <button 
                 onClick={() => {
@@ -496,23 +565,23 @@ export default function EditPage() {
                 }}
                 style={{ padding: "8px 15px", background: "#1A73C8", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", marginLeft: "20px" }}
             >
-                Kembali ke Lantai Utama
+                {getText('back_to_main_floor')}
             </button>
         )}
         <div className="edit-page-actions">
-          <button className="edit-page-btn cancel" onClick={() => setIsConfirmOpen(true)}>Cancel</button>
-          <button className="edit-page-btn save" onClick={() => { setConfirmAction("save"); setIsConfirmOpen(true); }}>Save</button>
+          <button className="edit-page-btn cancel" onClick={() => setIsConfirmOpen(true)}>{getText('cancel')}</button>
+          <button className="edit-page-btn save" onClick={() => { setConfirmAction("save"); setIsConfirmOpen(true); }}>{getText('save_map')}</button>
         </div>
       </header>
 
       {isConfirmOpen && (
         <div className="modal-overlay">
           <div className="confirm-modal">
-            <h3>Verifikasi</h3>
-            <p>Simpan perubahan ke database?</p>
+            <h3>{confirmAction === "save" ? getText('save_confirm') : getText('cancel_confirm')}</h3>
+            <p>{confirmAction === "save" ? getText('are_you_sure_save') : getText('are_you_sure_cancel')}</p>
             <div className="confirm-modal-actions">
-              <button className="confirm-btn no" onClick={() => setIsConfirmOpen(false)}>Tidak</button>
-              <button className="confirm-btn yes" onClick={handleConfirmYes}>Iya</button>
+              <button className="confirm-btn no" onClick={() => setIsConfirmOpen(false)}>{getText('no')}</button>
+              <button className="confirm-btn yes" onClick={handleConfirmYes}>{getText('yes')}</button>
             </div>
           </div>
         </div>
@@ -520,10 +589,10 @@ export default function EditPage() {
 
       <div className="edit-page-layout">
         <main className="edit-page-map" ref={mapRef} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
-          <TransformWrapper ref={transformRef} panning={{ disabled: isDraggingElement }} initialScale={1} minScale={0.05} maxScale={10} limitToBounds={false}>
+          <TransformWrapper ref={transformRef} panning={{ disabled: isDraggingElement }} initialScale={1} minScale={0.05} maxScale={10} limitToBounds={false} wheel={{ step: 0.05 }}>
             <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: isDraggingElement ? "grabbing" : "grab" }}>
               <div className="map-content" style={{ width: calculatedMapSize.width, height: calculatedMapSize.height, background: "#e0e0e0" }}>
-                <Stage width={calculatedMapSize.width} height={calculatedMapSize.height} onMouseDown={checkDeselect}>
+                <Stage width={calculatedMapSize.width} height={calculatedMapSize.height} onMouseDown={checkDeselect} onTouchStart={checkDeselect}>
                   <Layer>
                     <Rect id="bg-grid" x={0} y={0} width={calculatedMapSize.width} height={calculatedMapSize.height} fill="transparent" />
                     {drawGrid()}
@@ -558,8 +627,8 @@ export default function EditPage() {
         <aside className="edit-page-right-panel">
           <div style={{ background: "#ffffff", padding: "12px", borderRadius: "6px", border: "1px solid #cce5ff", marginBottom: "15px", boxShadow: "0 2px 4px rgba(0,0,0,0.03)" }}>
             <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", color: "#0056b3", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span>🏢 Manajemen Lantai</span>
-              <span style={{ fontSize: "10px", background: "#e8f4f8", padding: "2px 6px", borderRadius: "10px", color: "#0d47a1" }}>{floors.length} Lantai</span>
+              <span>🏢 {getText('floor_management')}</span>
+              <span style={{ fontSize: "10px", background: "#e8f4f8", padding: "2px 6px", borderRadius: "10px", color: "#0d47a1" }}>{floors.length} {getText('floors_count')}</span>
             </h4>
             <select 
               value={activeEditFloor} 
@@ -569,12 +638,12 @@ export default function EditPage() {
               }}
               style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid #b8daff", marginBottom: "10px", fontSize: "13px", fontWeight: "bold", color: "#0056b3", background: "#f8fbff", cursor: "pointer" }}
             >
-              {floors.map(f => <option key={f} value={f}>{f}</option>)}
+              {floors.map(f => <option key={f} value={f}>{translateName(f, language)}</option>)}
             </select>
 
             <div style={{ display: "flex", gap: "6px" }}>
-              <button onClick={handleAddFloor} style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#28a745", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Tambah</button>
-              <button onClick={handleDeleteFloor} style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>Hapus</button>
+              <button onClick={handleAddFloor} style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#28a745", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>{getText('add_floor')}</button>
+              <button onClick={handleDeleteFloor} style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>{getText('del_floor')}</button>
             </div>
           </div>
 
@@ -597,10 +666,10 @@ export default function EditPage() {
               </button>
           </div>
 
-          <h3>Edit Panel - {activeEditFloor}</h3>
+          <h3>{getText('edit_panel')} - {translateName(activeEditFloor, language)}</h3>
           <div className="edit-tools">
             <p style={{fontSize: "12px", color: "#666"}}>
-              {selectedId ? `Terpilih: ${selectedId}` : "Tidak ada elemen terpilih"}
+              {selectedId ? `${getText('selected')}: ${translateName(placedElements.find(el=>el.id === selectedId)?.name || "Kiosk", language)}` : getText('no_element_selected')}
             </p>
             <button 
               className="edit-page-btn delete" 
@@ -611,7 +680,7 @@ export default function EditPage() {
                 color: "white", border: "none", borderRadius: "5px", cursor: selectedId ? "pointer" : "not-allowed", marginTop: "10px"
               }}
             >
-              Hapus Elemen (Del)
+              {getText('del_element')}
             </button>
             
             {selectedId && placedElements.find(el => el.id === selectedId)?.type === 'room' && (() => {
@@ -645,15 +714,15 @@ export default function EditPage() {
                            }}
                            style={{ width: "100%", padding: "10px", backgroundColor: "#2196F3", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
                        >
-                           Masuk ke Bagian Dalam (Sub-Map)
+                           {getText('enter_submap')}
                        </button>
                        
                        <div className="endpoint-controls" style={{background: "#f9f9f9", padding: "10px", borderRadius: "5px", border: "1px solid #ddd"}}>
-                       <h4 style={{margin: "0 0 10px 0", fontSize: "14px", color: "#B71C1C"}}>📍 Sisi Endpoint Aktif</h4>
-                       <p style={{fontSize: "11px", color: "#666", marginBottom: "6px"}}>Ubah manual jika template tidak sesuai:</p>
+                       <h4 style={{margin: "0 0 10px 0", fontSize: "14px", color: "#B71C1C"}}>{getText('active_endpoint_side')}</h4>
+                       <p style={{fontSize: "11px", color: "#666", marginBottom: "6px"}}>{getText('change_manual_hint')}</p>
                        <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", background: "#fff", padding: "8px", borderRadius: "4px", border: "1px solid #eee"}}>
                            {['top', 'bottom', 'left', 'right'].map(side => {
-                               const labels = {top: "Atas", bottom: "Bawah", left: "Kiri", right: "Kanan"};
+                               const labels = {top: getText('top'), bottom: getText('bottom'), left: getText('left'), right: getText('right')};
                                const isChecked = (room.endpoints || []).includes(side);
                                return (
                                    <label key={side} style={{fontSize: "12px", display: "flex", alignItems: "center", gap: "5px", cursor: "pointer"}}>
@@ -679,16 +748,16 @@ export default function EditPage() {
 
           <hr style={{margin: "20px 0", border: "0.5px solid #ddd"}} />
 
-          <h3>Template Elemen</h3>
-          <p style={{fontSize: "11px", color: "#666", marginTop: "-5px", marginBottom: "15px"}}>Tarik template langsung ke peta.</p>
+          <h3>{getText('template_elements')}</h3>
+          <p style={{fontSize: "11px", color: "#666", marginTop: "-5px", marginBottom: "15px"}}>{getText('template_hint')}</p>
           
           <div className="dnd-zone" style={{display: "flex", flexDirection: "column", gap: "10px"}}>
             {[
-              { name: "Opposing Door Room", endpoints: ['left', 'right'], color: "#4caf50" },
-              { name: "One Door Room", endpoints: ['top'], color: "#4caf50" },
-              { name: "Two Door Room", endpoints: ['left', 'bottom'], color: "#4caf50" },
-              { name: "Three Door Room", endpoints: ['left', 'right', 'bottom'], color: "#4caf50" },
-              { name: "Four Door Room", endpoints: ['top', 'bottom', 'left', 'right'], color: "#4caf50" }
+              { name: "Ruangan Pintu Berlawanan", endpoints: ['left', 'right'], color: "#4caf50" },
+              { name: "Ruangan 1 Pintu", endpoints: ['top'], color: "#4caf50" },
+              { name: "Ruangan 2 Pintu", endpoints: ['left', 'bottom'], color: "#4caf50" },
+              { name: "Ruangan 3 Pintu", endpoints: ['left', 'right', 'bottom'], color: "#4caf50" },
+              { name: "Ruangan 4 Pintu", endpoints: ['top', 'bottom', 'left', 'right'], color: "#4caf50" }
             ].map(preset => (
               <div 
                 key={preset.name}
@@ -699,16 +768,27 @@ export default function EditPage() {
                     defaultName: preset.name,
                     endpoints: preset.endpoints,
                     defaultGridWidth: 4,
-                    defaultGridHeight: 2
+                    defaultGridHeight: 4
                   }));
                 }} 
+                onClick={() => {
+                  const newId = generateNextRoomId();
+                  const newElements = [...placedElements, {
+                    id: newId, type: 'room', floor: activeEditFloor,
+                    x: 200, y: 200, width: GRID_SIZE * 4, height: GRID_SIZE * 4,
+                    name: preset.name, fill: "#e0e0e0", stroke: "#9e9e9e",
+                    endpoints: preset.endpoints
+                  }];
+                  setPlacedElements(newElements);
+                  saveHistory(newElements);
+                }}
                 style={{ 
                   width: "100%", height: "40px", background: preset.color, border: "1px solid #1b5e20",
                   cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "4px" 
                 }}
               >
                 <p style={{ color: "#1b5e20", padding: "5px", fontSize: "11px", textAlign: "center", fontWeight: "bold" }}>
-                  {preset.name}
+                  {translateName(preset.name, language)}
                 </p>
               </div>
             ))}
@@ -725,13 +805,23 @@ export default function EditPage() {
                   defaultGridHeight: 2
                 }));
               }} 
+              onClick={() => {
+                const newId = generateNextKioskId();
+                const newElements = [...placedElements, {
+                  id: newId, type: 'kiosk', floor: activeEditFloor,
+                  x: 200, y: 200, width: GRID_SIZE * 2, height: GRID_SIZE * 2,
+                  name: "Kiosk Baru"
+                }];
+                setPlacedElements(newElements);
+                saveHistory(newElements);
+              }}
               style={{ 
                 width: GRID_SIZE * 2, height: GRID_SIZE * 2, background: "#2196F3", border: "1px solid #0D47A1",
                 cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" 
               }}
             >
               <p style={{ color: "white", padding: "2px", fontSize: "10px", textAlign: "center", fontWeight: "bold" }}>
-                Drag Kiosk
+                {getText('drag_kiosk')}
               </p>
             </div>
           </div>

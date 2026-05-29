@@ -111,6 +111,7 @@ app.add_middleware(
 class RequestRute(BaseModel):
     start_node_id: str
     teks_pencarian: str
+    language: str = "id"
 
 # Endpoint navigasi
 
@@ -123,13 +124,13 @@ def home():
 
 @app.post("/api/route")
 def dapatkan_rute(request: RequestRute):
-    hasil_nlp = cari_target_ruangan(request.teks_pencarian, request.start_node_id)
+    hasil_nlp = cari_target_ruangan(request.teks_pencarian, request.start_node_id, request.language)
     if hasil_nlp["status"] == "error":
         raise HTTPException(status_code=400, detail=hasil_nlp["pesan"])
         
     target_id = hasil_nlp["target_id"]
     
-    hasil_rute = cari_rute_grid(request.start_node_id, target_id)
+    hasil_rute = cari_rute_grid(request.start_node_id, target_id, request.language)
     if hasil_rute["status"] == "error":
          raise HTTPException(status_code=400, detail=hasil_rute["pesan"])
          

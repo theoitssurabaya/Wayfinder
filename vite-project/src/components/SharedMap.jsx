@@ -3,6 +3,7 @@ import { Stage, Layer, Rect, Text, Line, Group, Circle } from "react-konva";
 import Konva from "konva";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase"; 
+import { translateName } from "../utils/translator";
 
 function getTotalPathLength(pathPoints) {
   let total = 0;
@@ -51,7 +52,7 @@ function getPointAtDistance(pathPoints, distance) {
   return { x: lastX, y: lastY, angle: 0 };
 }
 
-export default function SharedMap({ path = [], activePath = null, currentFloor = "Lantai 1", onRoomClick, showGrid = true, showBorder = false }) {
+export default function SharedMap({ path = [], activePath = null, currentFloor = "Lantai 1", onRoomClick, showGrid = true, showBorder = false, language = "id" }) {
   const [rooms, setRooms] = useState([]);
   const [kiosks, setKiosks] = useState([]);
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
@@ -265,7 +266,6 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
                 stroke="#1a73c8" 
                 strokeWidth={2.5} 
                 cornerRadius={16} 
-                dash={[10, 10]} 
                 shadowColor="rgba(26, 115, 200, 0.08)"
                 shadowBlur={10}
                 shadowOffset={{ x: 0, y: 4 }}
@@ -277,7 +277,7 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
             {rooms
               .filter((room) => room.floor === currentFloor)
               .map((room) => {
-                const textContent = room.name || "Tanpa Nama";
+                const textContent = translateName(room.name || "Tanpa Nama", language);
                 const textLen = textContent.length || 1;
                 const usableWidth = room.width - 10;
                 // Auto shrink formula
@@ -308,7 +308,7 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
             {kiosks
               .filter((kiosk) => kiosk.floor === currentFloor)
               .map((kiosk) => {
-                const textContent = kiosk.name || "Kiosk";
+                const textContent = translateName(kiosk.name || "Kiosk", language);
                 const textLen = textContent.length || 1;
                 const usableWidth = kiosk.width - 10;
                 // Auto shrink formula

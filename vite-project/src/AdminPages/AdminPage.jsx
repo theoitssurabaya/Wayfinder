@@ -4,6 +4,7 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import SharedMap from "../components/SharedMap";
+import { translateName } from "../utils/translator";
 import "./Admin.css";
 
 // ── Icon components ──
@@ -49,6 +50,37 @@ export default function App() {
   const [targetRoomName, setTargetRoomName] = useState("");
   const [navigationSteps, setNavigationSteps] = useState([]);
   const [activeStepIndex, setActiveStepIndex] = useState(-1);
+  const [language, setLanguage] = useState(localStorage.getItem('language') || 'id');
+
+  const getText = (key) => {
+    const dict = {
+      'logout': { id: 'Keluar', en: 'Logout' },
+      'search_placeholder': { id: 'Cari tujuan...', en: 'Search destination...' },
+      'output_placeholder': { id: 'Keterangan rute akan muncul di sini', en: 'Destination output text will appear here' },
+      'select_kiosk': { id: 'Pilih Kiosk Awal', en: 'Select Start Kiosk' },
+      'select_room': { id: 'Pilih Ruangan Tujuan', en: 'Select Destination Room' },
+      'select_floor': { id: 'Pilih Lantai', en: 'Select Floor' },
+      'fail_kiosk_first': { id: 'Silakan pilih Kiosk awal terlebih dahulu.', en: 'Please select a starting Kiosk first.' },
+      'searching': { id: 'Mencari rute...', en: 'Searching for route...' },
+      'failed': { id: 'Gagal:', en: 'Failed:' },
+      'route_found': { id: 'Rute ditemukan!', en: 'Route found!' },
+      'towards': { id: 'Menuju:', en: 'Towards:' },
+      'no_nav_text': { id: 'Teks navigasi tidak tersedia.', en: 'Navigation text is not available.' },
+      'edit': { id: 'Edit', en: 'Edit' },
+      'confirm_logout': { id: 'Konfirmasi Logout', en: 'Confirm Logout' },
+      'are_you_sure_logout': { id: 'Apakah Anda yakin ingin logout?', en: 'Are you sure you want to logout?' },
+      'no': { id: 'Tidak', en: 'No' },
+      'yes': { id: 'Iya', en: 'Yes' },
+      'back_to_main_floor': { id: 'Kembali ke Lantai Utama', en: 'Back to Main Floor' }
+    };
+    return dict[key] ? dict[key][language] : key;
+  };
+
+  const toggleLanguage = () => {
+    const newLang = language === 'id' ? 'en' : 'id';
+    setLanguage(newLang);
+    localStorage.setItem('language', newLang);
+  };
 
   useEffect(() => {
     // 1. Listen ke Kiosks
@@ -110,7 +142,7 @@ export default function App() {
       
       langkahNavigasi.forEach((step, index) => {
         const utterance = new SpeechSynthesisUtterance(step.teks);
-        utterance.lang = 'id-ID';
+        utterance.lang = language === 'en' ? 'en-US' : 'id-ID';
         utterance.rate = 1.15;
         utterance.onstart = () => {
           setActiveStepIndex(index);
@@ -147,11 +179,11 @@ export default function App() {
     if (!searchTarget.trim()) return;
     
     if (!searchLocation) {
-      setOutputText("Silakan pilih Kiosk awal terlebih dahulu.");
+      setOutputText(getText('fail_kiosk_first'));
       return;
     }
 
-    setOutputText("Mencari rute...");
+    setOutputText(getText('searching'));
     try {
       const response = await fetch("/api/route", {
         method: "POST",
@@ -160,32 +192,33 @@ export default function App() {
         },
         body: JSON.stringify({
           start_node_id: searchLocation,
-          teks_pencarian: searchTarget.trim()
+          teks_pencarian: searchTarget.trim(),
+          language: language
         })
       });
       
       const data = await response.json();
       
       if (!response.ok) {
-        setOutputText(`Gagal: ${data.detail || "Terjadi kesalahan"}`);
+        setOutputText(`${getText('failed')} ${data.detail || "Terjadi kesalahan"}`);
         setPathData([]);
         setNavigationSteps([]);
         setActiveStepIndex(-1);
       } else {
-        const roomName = data.data_target.nama_ruangan;
+        const roomName = translateName(data.data_target.nama_ruangan, language);
         setTargetRoomName(roomName);
         setPathData(data.jalur_koordinat);
         setNavigationSteps(data.langkah_navigasi);
         setActiveStepIndex(0);
         
-        let allText = "Teks navigasi tidak tersedia.";
+        let allText = getText('no_nav_text');
         if (data.langkah_navigasi && data.langkah_navigasi.length > 0) {
             allText = data.langkah_navigasi.map(l => l.teks).join("\n\n");
-            const finalText = `Rute ditemukan!\nMenuju: ${roomName}\n\n${allText}`;
+            const finalText = `${getText('route_found')}\n${getText('towards')} ${roomName}\n\n${allText}`;
             setOutputText(finalText);
             speakSteps(data.langkah_navigasi);
         } else {
-            const fallbackText = `Rute ditemukan menuju ${roomName}`;
+            const fallbackText = `${getText('route_found')} ${getText('towards')} ${roomName}`;
             setOutputText(fallbackText);
             
             if (data.jalur_koordinat && data.jalur_koordinat.length > 0 && data.jalur_koordinat[0].floor) {
@@ -195,7 +228,7 @@ export default function App() {
             if ('speechSynthesis' in window) {
               window.speechSynthesis.cancel();
               const utterance = new SpeechSynthesisUtterance(fallbackText);
-              utterance.lang = 'id-ID';
+              utterance.lang = language === 'en' ? 'en-US' : 'id-ID';
               utterance.rate = 1.15;
               window.speechSynthesis.speak(utterance);
             }
@@ -224,14 +257,20 @@ export default function App() {
     <div>
       <header className="header">
         <span className="header-logo">Wayfinder</span>
-        <div className="header-actions">
+        <div className="header-actions" style={{display: "flex", gap: "10px", alignItems: "center"}}>
+          <button 
+            onClick={toggleLanguage} 
+            style={{background: "transparent", border: "1px solid white", color: "white", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold"}}
+          >
+            {language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}
+          </button>
           <button className="header-edit-btn" onClick={() => navigate("/edit")}>
             <EditIcon />
-            Edit
+            {getText('edit')}
           </button>
           <button className="header-login-btn" onClick={openLogoutConfirm}>
             <LoginIcon />
-            Logout
+            {getText('logout')}
           </button>
         </div>
       </header>
@@ -239,11 +278,11 @@ export default function App() {
       {isConfirmOpen && (
         <div className="modal-overlay" onClick={handleLogoutNo}>
           <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Konfirmasi Logout</h3>
-            <p>Apakah Anda yakin ingin logout?</p>
+            <h3>{getText('confirm_logout')}</h3>
+            <p>{getText('are_you_sure_logout')}</p>
             <div className="confirm-modal-actions">
-              <button className="confirm-btn no" onClick={handleLogoutNo}>Tidak</button>
-              <button className="confirm-btn yes" onClick={handleLogoutYes}>Iya</button>
+              <button className="confirm-btn no" onClick={handleLogoutNo}>{getText('no')}</button>
+              <button className="confirm-btn yes" onClick={handleLogoutYes}>{getText('yes')}</button>
             </div>
           </div>
         </div>
@@ -255,7 +294,7 @@ export default function App() {
             <input
               className="search-input"
               type="text"
-              placeholder="Search destination"
+              placeholder={getText('search_placeholder')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleSearchKey}
@@ -267,7 +306,7 @@ export default function App() {
 
           <textarea
             className="destination-output"
-            placeholder="Destination output text"
+            placeholder={getText('output_placeholder')}
             value={outputText}
             readOnly
             style={{ minHeight: "100px" }}
@@ -286,10 +325,10 @@ export default function App() {
                 }
               }}
             >
-              <option value="" disabled>Pilih Kiosk Awal</option>
+              <option value="" disabled>{getText('select_kiosk')}</option>
               {kiosks.map((kiosk) => (
                 <option key={kiosk.id} value={kiosk.id}>
-                  {kiosk.name || kiosk.id}
+                  {translateName(kiosk.name || kiosk.id, language)}
                 </option>
               ))}
             </select>
@@ -300,18 +339,26 @@ export default function App() {
           <div className="dropdown-wrapper" style={{ marginTop: "12px" }}>
             <select
               className="dropdown-select"
-              value={rooms.some(r => r.name === search) ? search : ""}
+              value={(() => {
+                const matchedRoom = rooms.find(r => r.name === search || translateName(r.name, language) === search);
+                return matchedRoom ? matchedRoom.name : "";
+              })()}
               onChange={(e) => {
-                const newTarget = e.target.value;
-                setSearch(newTarget); // Sinkronkan dropdown ke kotak teks
-                executeSearch(location, newTarget);
+                const rawName = e.target.value;
+                const translatedName = translateName(rawName, language);
+                setSearch(translatedName); 
+                executeSearch(location, rawName);
               }}
             >
-              <option value="" disabled>Pilih Ruangan Tujuan</option>
-              {rooms
-                .filter(room => room.floor === floor)
-                .map((room) => (
-                <option key={room.id} value={room.name}>{room.name}</option>
+              <option value="" disabled>{getText('select_room')}</option>
+              {floors.filter(f => !f.startsWith("submap_")).map((floorName) => (
+                <optgroup key={floorName} label={translateName(floorName, language)}>
+                  {rooms
+                    .filter(room => room.floor === floorName || room.floor.startsWith(`submap_${rooms.find(r=>r.name===room.name)?.id}`))
+                    .map((room) => (
+                    <option key={room.id} value={room.name}>{translateName(room.name, language)}</option>
+                  ))}
+                </optgroup>
               ))}
             </select>
             <ChevronIcon />
@@ -331,9 +378,9 @@ export default function App() {
                 })()}
                 onChange={(e) => setFloor(e.target.value)}
               >
-                <option value="" disabled>Pilih Lantai</option>
+                <option value="" disabled>{getText('select_floor')}</option>
                 {floors.filter(f => !f.startsWith("submap_")).map((f) => (
-                  <option key={f} value={f}>{f}</option>
+                  <option key={f} value={f}>{translateName(f, language)}</option>
                 ))}
               </select>
               <ChevronIcon />
@@ -341,12 +388,13 @@ export default function App() {
             {floor && (
               <div className="floor-selected-chip">
                 {(() => {
+                  let dFloor = floor;
                   if (floor.startsWith("submap_")) {
                     const parentId = floor.replace("submap_", "");
                     const parent = rooms.find(r => r.id === parentId);
-                    return parent ? parent.floor : "Lantai 1";
+                    dFloor = parent ? parent.floor : "Lantai 1";
                   }
-                  return floor;
+                  return translateName(dFloor, language);
                 })()}
               </div>
             )}
@@ -363,16 +411,17 @@ export default function App() {
                   }}
                   style={{ position: "absolute", top: "20px", left: "20px", zIndex: 100, padding: "10px 20px", background: "#1A73C8", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold", boxShadow: "0 4px 6px rgba(0,0,0,0.1)" }}
               >
-                  Kembali ke Lantai Utama
+                  {getText('back_to_main_floor')}
               </button>
           )}
-          <TransformWrapper initialScale={1} minScale={0.05} maxScale={10} centerOnInit={true} limitToBounds={false}>
+          <TransformWrapper initialScale={1} minScale={0.05} maxScale={10} centerOnInit={true} limitToBounds={false} wheel={{ step: 0.05 }}>
             <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }} contentStyle={{ width: "100%", height: "100vh" }}>
               <div className="map-content" style={{ width: "100%", height: "100%" }}>
                 <SharedMap 
                   path={pathData} 
-                  activePath={activePath}
+                  activePath={null}
                   currentFloor={floor} 
+                  language={language}
                   onRoomClick={(room) => {
                       if (floors.includes(`submap_${room.id}`)) {
                           setFloor(`submap_${room.id}`);
