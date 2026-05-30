@@ -2,20 +2,16 @@
 import re
 import difflib
 import numpy as np
-from Sastrawi.Stemmer.StemmerFactory import StemmerFactory
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import SentenceTransformer, util
 
-print("Memuat mesin NLP (Sastrawi & TF-IDF)...")
-
-factory = StemmerFactory()
-stemmer = factory.create_stemmer()
+print("Memuat mesin NLP (Sentence Transformers)...")
+# Menggunakan model multilingual yang mendukung bahasa Indonesia & Inggris
+model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
 
 # Variabel global kosong yang akan diisi oleh Firebase nanti
 DATABASE_RUANGAN = {}
 daftar_nama_ruangan = []
-matrix_ruangan = None
-vectorizer = TfidfVectorizer(ngram_range=(1, 2))
+embeddings_ruangan = None
 
 # Pengetahuan dasar asisten agar lebih pintar
 KAMUS_SINONIM = {
@@ -42,52 +38,44 @@ def bersihkan_teks(teks_kotor):
         teks = re.sub(rf'\b{slang}\b', baku, teks)
         
     teks = re.sub(r'[^\w\s]', '', teks)
-    teks_dasar = stemmer.stem(teks)
     
     # Kata tugas yang tidak relevan untuk pencarian rute (ID & EN)
     stopwords = [
         "mau", "ke", "di", "mana", "tolong", "antar", "cari", "ruang", "tempat", "saya", "ingin", "tanya", "mas", "mbak", "kasih", "tau", "arah", "jalan", "buat", "ambil",
         "want", "to", "go", "where", "please", "take", "me", "find", "room", "place", "i", "ask", "show", "way", "direction", "get", "looking", "for"
     ]
-    kata_akhir = [kata for kata in teks_dasar.split() if kata not in stopwords]
+    kata_akhir = [kata for kata in teks.split() if kata not in stopwords]
     
-    # Fitur Koreksi Typo Sederhana (Fuzzy matching)
-    # Jika ada typo ringan (e.g. "apotikk" -> "apotik"), kita bisa coba benarkan.
-    kata_koreksi = []
-    semua_kata_kunci = list(KAMUS_SINONIM.keys()) + list(set(KAMUS_SINONIM.values())) + ["informasi", "laboratorium", "rehabilitasi", "medik"]
-    for kata in kata_akhir:
-        koreksi = difflib.get_close_matches(kata, semua_kata_kunci, n=1, cutoff=0.8)
-        if koreksi:
-            kata_koreksi.append(koreksi[0])
-        else:
-            kata_koreksi.append(kata)
-            
-    return " ".join(kata_koreksi)
+    return " ".join(kata_akhir)
 
 # Fungsi untuk melatih ulang model NLP dengan data terbaru dari Firebase
 def latih_ulang_nlp(data_kamus_baru):
-    global DATABASE_RUANGAN, daftar_nama_ruangan, matrix_ruangan, vectorizer
+    global DATABASE_RUANGAN, daftar_nama_ruangan, embeddings_ruangan
     
-    DATABASE_RUANGAN = data_kamus_baru
-    daftar_nama_ruangan = list(DATABASE_RUANGAN.keys())
-    
-    if not DATABASE_RUANGAN:
+    if not data_kamus_baru:
         print("[NLP] Peringatan: Database kosong, tidak ada yang dilatih.")
         return
 
     korpus_dokumen = []
-    for sinonim in DATABASE_RUANGAN.values():
+    for sinonim in data_kamus_baru.values():
         teks_gabungan = " ".join(sinonim)
         korpus_dokumen.append(bersihkan_teks(teks_gabungan))
 
-    # Latih ulang model TF-IDF dengan data terbaru dari Firebase
-    matrix_ruangan = vectorizer.fit_transform(korpus_dokumen)
+    # Latih ulang model Embeddings dengan data terbaru dari Firebase
+    new_embeddings = model.encode(korpus_dokumen, convert_to_tensor=True)
+    
+    # KUNCI PENTING: Swap variabel secara atomik setelah komputasi 3-5 detik selesai
+    # untuk mencegah Race Condition ketika ada pencarian berbarengan
+    DATABASE_RUANGAN = data_kamus_baru
+    daftar_nama_ruangan = list(DATABASE_RUANGAN.keys())
+    embeddings_ruangan = new_embeddings
+
     print(f"[NLP] Model berhasil dilatih ulang! ({len(daftar_nama_ruangan)} Ruangan Aktif)")
 
 # Fungsi pencocokan NLP utama  
 def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id"):
     # Cegah error jika database Firebase belum masuk
-    if matrix_ruangan is None or not daftar_nama_ruangan:
+    if embeddings_ruangan is None or not daftar_nama_ruangan:
         pesan = "Sistem sedang memuat data peta, mohon tunggu." if language == "id" else "System is loading map data, please wait."
         return {"status": "error", "pesan": pesan}
 
@@ -96,17 +84,42 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id"):
          pesan = "Mohon masukkan tujuan yang lebih spesifik." if language == "id" else "Please enter a more specific destination."
          return {"status": "error", "pesan": pesan}
 
-    vektor_input = vectorizer.transform([input_bersih])
-    skor_kemiripan = cosine_similarity(vektor_input, matrix_ruangan)[0]
+    # HEURISTIC: Deteksi jika user HANYA ingin pergi ke suatu lantai (misal: "turun lantai 1", "lantai 2", dsb.)
+    # Jika iya, kita akan arahkan mereka ke "Lift" di lantai tujuan tersebut.
+    teks_cek = input_bersih.replace("naik", "").replace("turun", "").strip()
+    match_lantai = re.fullmatch(r'lantai\s+(\w+)', teks_cek) # \w+ agar menangkap angka maupun string "dasar" dsb
+    if match_lantai:
+        target_floor = f"Lantai {match_lantai.group(1)}"
+        import waypoint_graph
+        for r_id, room in waypoint_graph.RUANGAN_GRID.items():
+            if room.get("floor", "Lantai 1").lower() == target_floor.lower():
+                nama = room.get("name", "").lower()
+                if "lift" in nama and "tangga" not in nama:
+                    return {
+                        "status": "success",
+                        "target_id": r_id,
+                        "confidence_score": 1.0
+                    }
+
+    input_embedding = model.encode(input_bersih, convert_to_tensor=True)
+    skor_kemiripan = util.cos_sim(input_embedding, embeddings_ruangan)[0].cpu().numpy()
+    
+    # Penalti Tangga Darurat jika user tidak secara spesifik mengetik "tangga"
+    # agar rute antar lantai via pencarian NLP selalu memprioritaskan "Lift"
+    if "tangga" not in input_bersih:
+        for i, r_id in enumerate(daftar_nama_ruangan):
+            nama_keywords = " ".join(DATABASE_RUANGAN.get(r_id, [])).lower()
+            if "tangga" in nama_keywords:
+                skor_kemiripan[i] -= 0.50
     
     # Cari skor maksimum
     max_score = np.max(skor_kemiripan)
     
-    # Ambang batas diturunkan ke 5% karena typo correction & tf-idf kadang menghasilkan skor kecil
-    # Namun jika sudah tertinggi, kemungkinan besar benar
-    if max_score >= 0.05:
-        # Cari semua kandidat yang memiliki skor kemiripan maksimum
-        kandidat_indeks = np.where(skor_kemiripan == max_score)[0]
+    # Ambang batas dinaikkan ke 40% karena semantic embeddings menghasilkan skor cosine > 0 untuk banyak hal
+    # Tapi kita ingin yang benar-benar relevan
+    if max_score >= 0.40:
+        # Cari semua kandidat yang memiliki skor kemiripan maksimum (atau sangat dekat dengan maks)
+        kandidat_indeks = np.where(skor_kemiripan >= max_score - 0.01)[0]
         
         terbaik_id = None
         

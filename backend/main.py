@@ -24,14 +24,10 @@ def sinkronisasi_peta(data):
     print("\n[FIREBASE] Pembaruan denah terdeteksi dari React UI...")
     
     data_nlp_baru = {} # Menampung kamus sementara untuk NLP
-
-    # KUNCI PENTING: Kita bersihkan memori RUANGAN_GRID lama 
-    # Agar ruangan yang baru saja kamu hapus di UI Konva juga ikut terhapus dari otak A*
-    waypoint_graph.RUANGAN_GRID.clear()
     
-    # Bersihkan GRID_MAP ke 0 semua (Reset area)
-    waypoint_graph.GRID_MAP.clear()
-
+    # Variabel sementara agar tidak terjadi race condition saat A* dipanggil bersamaan
+    temp_ruangan = {}
+    temp_grid = {}
     for item in data:
         # Gunakan id_dokumen (contoh: "R016") sebagai penanda unik
         room_id = item.get("id_dokumen") 
@@ -58,8 +54,8 @@ def sinkronisasi_peta(data):
             
             floor = item.get("floor", "Lantai 1")
             
-            # 1. Update Memori A* (Database Sementara untuk Algoritma Theo)
-            waypoint_graph.RUANGAN_GRID[room_id] = {
+            # 1. Update Memori Sementara untuk Algoritma Theo
+            temp_ruangan[room_id] = {
                 "x": gx,
                 "y": gy,
                 "w": gw,
@@ -69,8 +65,10 @@ def sinkronisasi_peta(data):
                 "floor": floor
             }
             
-            # Ambil grid untuk lantai ini
-            grid = waypoint_graph.get_grid_map(floor)
+            # Ambil grid untuk lantai ini (buat baru jika belum ada)
+            if floor not in temp_grid:
+                temp_grid[floor] = [[0 for _ in range(waypoint_graph.GRID_WIDTH)] for _ in range(waypoint_graph.GRID_HEIGHT)]
+            grid = temp_grid[floor]
             
             # Tandai area ruangan/kiosk sebagai rintangan (1)
             for dy in range(gh):
@@ -91,7 +89,13 @@ def sinkronisasi_peta(data):
             
             print(f" -> Load: [{room_id}] '{room_name}' (X:{item['grid_x']}, Y:{item['grid_y']})")
 
-    # 3. Eksekusi Pelatihan Ulang NLP secara Real-Time
+    # 3. Swap Secara Atomik untuk mencegah Race Condition
+    waypoint_graph.RUANGAN_GRID.clear()
+    waypoint_graph.RUANGAN_GRID.update(temp_ruangan)
+    waypoint_graph.GRID_MAP.clear()
+    waypoint_graph.GRID_MAP.update(temp_grid)
+
+    # 4. Eksekusi Pelatihan Ulang NLP secara Real-Time
     latih_ulang_nlp(data_nlp_baru)
     print("[FIREBASE] Sinkronisasi selesai. Matriks A* dan Model NLP siap digunakan!")
 

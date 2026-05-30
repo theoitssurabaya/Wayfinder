@@ -1,5 +1,5 @@
 # Backend
-pip install fastapi uvicorn pydantic scikit-learn Sastrawi firebase-admin pytest
+pip install fastapi uvicorn pydantic firebase-admin pytest sentence-transformers torch
 
 # Frontend
 npm install react-konva

@@ -108,6 +108,7 @@ body {
 }
 
 .search-input::placeholder { color: var(--text-muted); }
+.destination-output::placeholder { color: var(--text-muted); }
 
 .search-input:focus {
   border-color: var(--blue-primary);

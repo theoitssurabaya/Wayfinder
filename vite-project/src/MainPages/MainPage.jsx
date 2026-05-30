@@ -54,7 +54,7 @@ export default function App() {
   const getText = (key) => {
     const dict = {
       'login': { id: 'Masuk', en: 'Login' },
-      'search_placeholder': { id: 'Cari tujuan...', en: 'Search destination...' },
+      'search_placeholder': { id: 'Cari nama poli atau keluhan Anda...', en: 'Search for a clinic or your symptoms...' },
       'output_placeholder': { id: 'Keterangan rute akan muncul di sini', en: 'Destination output text will appear here' },
       'select_kiosk': { id: 'Pilih Kiosk Awal', en: 'Select Start Kiosk' },
       'select_room': { id: 'Pilih Ruangan Tujuan', en: 'Select Destination Room' },

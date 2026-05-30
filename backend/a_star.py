@@ -321,15 +321,23 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
             current_dir = dir
 
     if len(langkah) == 0:
-        if language == "id": teks_akhir = f"Dari {start_name}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
-        else: teks_akhir = f"From {start_name}, walk {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
-    elif is_after_transition:
-        if path[-1]['floor'].startswith("submap_"):
-            if language == "id": teks_akhir = f"Setelah masuk, lurus ke arah {current_dir} dan Anda akan sampai di {target_name}."
-            else: teks_akhir = f"After entering, go straight {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
+        if current_dir is None:
+            if language == "id": teks_akhir = f"Anda sudah berada di {target_name}."
+            else: teks_akhir = f"You are already at {target_name}."
         else:
-            if language == "id": teks_akhir = f"Dari Lift di {path[-1]['floor']}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
-            else: teks_akhir = f"From the Lift at {path[-1]['floor']}, walk {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
+            if language == "id": teks_akhir = f"Dari {start_name}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
+            else: teks_akhir = f"From {start_name}, walk {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
+    elif is_after_transition:
+        if current_dir is None:
+            if language == "id": teks_akhir = f"Anda sudah sampai di {path[-1]['floor']}."
+            else: teks_akhir = f"You have arrived at {get_translated_floor(path[-1]['floor'], language)}."
+        else:
+            if path[-1]['floor'].startswith("submap_"):
+                if language == "id": teks_akhir = f"Setelah masuk, lurus ke arah {current_dir} dan Anda akan sampai di {target_name}."
+                else: teks_akhir = f"After entering, go straight {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
+            else:
+                if language == "id": teks_akhir = f"Dari Lift di {path[-1]['floor']}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
+                else: teks_akhir = f"From the Lift at {get_translated_floor(path[-1]['floor'], language)}, walk {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
     else:
         teks_akhir = f"Setelah belok, lurus terus dan Anda akan sampai di {target_name}." if language == "id" else f"After turning, go straight and you will arrive at {target_name}."
 
