@@ -68,13 +68,62 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 .search-wrapper, .dropdown-wrapper { position: relative; }
 .search-icon, .dropdown-arrow { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-muted); width: 18px; }
 
-.destination-output {
-  width: 100%; min-height: 130px; border: 1.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 18px;
-  font-size: 0.9rem; font-family: 'DM Sans', sans-serif; color: var(--text-muted); background: var(--white); resize: none; outline: none;
+/* Destination output dynamic box */
+.destination-output-dynamic {
+  width: 100%;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 18px;
+  background: var(--white);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.search-input::placeholder, .destination-output::placeholder {
+.destination-output-dynamic::-webkit-scrollbar {
+  width: 6px;
+}
+.destination-output-dynamic::-webkit-scrollbar-track {
+  background: transparent;
+}
+.destination-output-dynamic::-webkit-scrollbar-thumb {
+  background: #c1d3e5;
+  border-radius: 10px;
+}
+
+.nav-header {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  color: var(--blue-primary);
+  margin-bottom: 5px;
+  border-bottom: 1.5px dashed #eaeaea;
+  padding-bottom: 10px;
+  font-size: 0.95rem;
+}
+
+.nav-step {
+  font-size: 0.92rem;
+  font-family: 'DM Sans', sans-serif;
   color: var(--text-muted);
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.nav-step.active-step {
+  background: var(--blue-light);
+  color: var(--blue-dark);
+  font-weight: 600;
+  transform: scale(1.02);
+  transform-origin: left;
+  box-shadow: 0 2px 8px rgba(26,115,200,0.1);
+  border-left: 3px solid var(--blue-primary);
 }
 
 .floor-group { display: flex; flex-direction: column; }

@@ -291,7 +291,7 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
                       onMouseEnter={(e) => { if (onRoomClick) { e.target.getStage().container().style.cursor = 'pointer'; } }}
                       onMouseLeave={(e) => { if (onRoomClick) { e.target.getStage().container().style.cursor = 'default'; } }}
                   >
-                    <Rect x={room.x} y={room.y} width={room.width} height={room.height} fill="#f8f9fa" stroke="#dae0e5" strokeWidth={2} perfectDrawEnabled={false} shadowForStrokeEnabled={false} listening={false} />
+                    <Rect x={room.x} y={room.y} width={room.width} height={room.height} fill="#f8f9fa" stroke="#dae0e5" strokeWidth={2} perfectDrawEnabled={false} shadowForStrokeEnabled={false} />
                     
                     <Text 
                         text={textContent} 

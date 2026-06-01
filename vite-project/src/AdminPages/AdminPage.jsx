@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
@@ -92,16 +92,25 @@ export default function App() {
     localStorage.setItem('language', newLang);
   };
 
+  const hasAutoSwitchedFloor = useRef(false);
+
   useEffect(() => {
     // 1. Listen ke Kiosks
     const unsubscribeKiosks = onSnapshot(collection(db, "Kiosks"), (kioskSnap) => {
       const loadedKiosks = [];
       const foundFloors = new Set(["Lantai 1"]);
 
+      let floorToSwitch = null;
+
       kioskSnap.forEach((docSnap) => {
         const data = docSnap.data();
         loadedKiosks.push({ id: docSnap.id, ...data });
         if (data.floor) foundFloors.add(data.floor);
+
+        const lockedId = localStorage.getItem("locked_kiosk_id");
+        if (lockedId && docSnap.id === lockedId && data.floor) {
+          floorToSwitch = data.floor;
+        }
       });
       setKiosks(loadedKiosks);
       
@@ -109,6 +118,11 @@ export default function App() {
         const combined = new Set([...prev, ...foundFloors]);
         return Array.from(combined).sort();
       });
+
+      if (floorToSwitch && !hasAutoSwitchedFloor.current) {
+        setFloor(floorToSwitch);
+        hasAutoSwitchedFloor.current = true;
+      }
     });
 
     // 2. Listen ke Rooms
@@ -139,6 +153,23 @@ export default function App() {
     };
   }, []);
 
+  const isMountedRef = useRef(true);
+  const resetTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        window.utterances = [];
+      }
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const activePath = useMemo(() => {
     if (activeStepIndex === -1 || !navigationSteps.length || !pathData.length) return null;
     const startIndex = activeStepIndex === 0 ? 0 : navigationSteps[activeStepIndex - 1].index_akhir;
@@ -152,6 +183,7 @@ export default function App() {
       window.utterances = []; // HACK: Mencegah Garbage Collection di browser Mobile
       
       const playNext = (index) => {
+        if (!isMountedRef.current) return;
         if (index >= langkahNavigasi.length) return;
         
         const step = langkahNavigasi[index];
@@ -171,7 +203,8 @@ export default function App() {
         utterance.onend = () => {
           if (index === langkahNavigasi.length - 1) {
             // Reset setelah langkah terakhir selesai dibacakan + 10 detik
-            setTimeout(() => {
+            resetTimeoutRef.current = setTimeout(() => {
+              if (!isMountedRef.current) return;
               setSearch("");
               setOutputText("");
               setLocation("");
@@ -413,14 +446,6 @@ export default function App() {
             </div>
           </div>
 
-          <textarea
-            className="destination-output"
-            placeholder={getText('output_placeholder')}
-            value={outputText}
-            readOnly
-            style={{ minHeight: "100px" }}
-          />
-
           {/* KIOSK DROPDOWN */}
           <div className="dropdown-wrapper">
             <select
@@ -508,6 +533,30 @@ export default function App() {
               </div>
             )}
           </div>
+
+          {/* DYNAMIC NAVIGATION TEXT BOX */}
+          {(outputText || navigationSteps.length > 0) && (
+            <div className="destination-output-dynamic">
+              {navigationSteps.length > 0 ? (
+                <>
+                  <div className="nav-header">
+                    {getText('route_found')} {getText('towards')} {targetRoomName}
+                  </div>
+                  {navigationSteps.map((step, idx) => (
+                    <div 
+                      key={idx} 
+                      className={`nav-step ${activeStepIndex === idx ? 'active-step' : ''}`}
+                      ref={activeStepIndex === idx ? (el) => el && el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }) : null}
+                    >
+                      {step.teks}
+                    </div>
+                  ))}
+                </>
+              ) : (
+                <div className="nav-step">{outputText}</div>
+              )}
+            </div>
+          )}
         </aside>
         
         <main className="map-panel" style={{ position: "relative" }}>

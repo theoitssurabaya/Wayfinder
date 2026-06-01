@@ -222,13 +222,89 @@ def get_translated_floor(floor_str, language="en"):
         return f"Floor {num}"
     return floor_str
 
+def translate_room_name(name, language="en"):
+    if language == "id" or not name: return name
+    
+    dict_en = {
+        "Poli Gigi": "Dental Clinic",
+        "Poli Mata": "Eye Clinic",
+        "Poli Kandungan": "Obstetrics Clinic",
+        "Poli Anak": "Pediatric Clinic",
+        "Poli Umum": "General Clinic",
+        "Poli Penyakit Dalam": "Internal Medicine",
+        "Poli Jantung": "Cardiology Clinic",
+        "Poli Syaraf": "Neurology Clinic",
+        "Poli Spesialis Lanjutan": "Advanced Specialist Clinic",
+        "Poli Spesialis": "Specialist Clinic",
+        "Poli": "Clinic",
+        "Ruang Operasi": "Operating Room",
+        "Ruang Tunggu": "Waiting Room",
+        "Ruang Pendaftaran": "Registration Room",
+        "Ruang Nakes": "Medical Staff Room",
+        "Pendaftaran": "Registration",
+        "Registrasi": "Registration",
+        "Ruang": "Room",
+        "Unit Gawat Darurat (IGD)": "Emergency Room (ER)",
+        "Instalasi Gawat Darurat": "Emergency Room (ER)",
+        "IGD": "Emergency Room (ER)",
+        "UGD": "Emergency Room (ER)",
+        "Gawat Darurat": "Emergency",
+        "Instalasi Rawat Inap": "Inpatient Installation",
+        "Instalasi Radiologi": "Radiology Installation",
+        "Rehabilitasi Medik": "Medical Rehabilitation",
+        "Medical Check Up (MCU)": "Medical Check Up (MCU)",
+        "Pusat Informasi": "Information Center",
+        "Apotek": "Pharmacy",
+        "Farmasi": "Pharmacy",
+        "Kasir & Administrasi": "Cashier & Administration",
+        "Kasir": "Cashier",
+        "Administrasi": "Administration",
+        "Kantin": "Canteen",
+        "Toilet": "Toilet",
+        "Kamar Mandi": "Toilet",
+        "Mushola": "Prayer Room",
+        "Masjid": "Mosque",
+        "Radiologi": "Radiology",
+        "Rawat Inap": "Inpatient Ward",
+        "Rawat Jalan": "Outpatient Clinic",
+        "Unit Rawat Jalan": "Outpatient Unit",
+        "Laboratorium Darah": "Blood Laboratory",
+        "Laboratorium": "Laboratory",
+        "Pintu Masuk": "Entrance",
+        "Pintu Keluar": "Exit",
+        "Kiosk Basement": "Basement Kiosk",
+        "Kiosk Baru": "New Kiosk",
+        "Kiosk": "Kiosk",
+        "Ruangan Induk": "Main Room",
+        "Ruangan Pintu Berlawanan": "Opposing Door Room",
+        "Ruangan 1 Pintu": "One Door Room",
+        "Ruangan 2 Pintu": "Two Door Room",
+        "Ruangan 3 Pintu": "Three Door Room",
+        "Ruangan 4 Pintu": "Four Door Room",
+        "Tangga Darurat": "Emergency Stairs",
+        "Lift": "Elevator",
+        "Tangga": "Stairs",
+        "Taman": "Garden"
+    }
+    
+    if name in dict_en: return dict_en[name]
+    
+    translated = name
+    import re
+    sorted_keys = sorted(dict_en.keys(), key=len, reverse=True)
+    for id_word in sorted_keys:
+        en_word = dict_en[id_word]
+        escaped_word = re.escape(id_word)
+        translated = re.sub(rf'\b{escaped_word}\b', en_word, translated, flags=re.IGNORECASE)
+    return translated
+
 def generate_navigation_text(path, start_id, target_id, language="id"):
     if not path or len(path) < 2:
         msg = "Anda sudah sampai di tujuan." if language == "id" else "You have reached your destination."
         return [{"teks": msg, "index_akhir": len(path) - 1 if path else 0, "floor": path[0]["floor"] if path else "Lantai 1"}]
 
-    start_name = RUANGAN_GRID.get(start_id, {}).get("name", "Kiosk")
-    target_name = RUANGAN_GRID.get(target_id, {}).get("name", "Tujuan")
+    start_name = translate_room_name(RUANGAN_GRID.get(start_id, {}).get("name", "Kiosk"), language)
+    target_name = translate_room_name(RUANGAN_GRID.get(target_id, {}).get("name", "Tujuan"), language)
     langkah = []
     current_dir = None
     is_after_transition = False
@@ -294,30 +370,30 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
             current_dir = dir
         elif current_dir != dir:
             turn = get_turn(current_dir, dir)
-            adj_room = get_adjacent_room(p1["x"], p1["y"], p1["floor"], exclude_ids)
+            adj_room = translate_room_name(get_adjacent_room(p1["x"], p1["y"], p1["floor"], exclude_ids), language)
             
             if len(langkah) == 0:
                 if language == "id": prefix = f"Dari {start_name}, berjalanlah ke arah {current_dir}"
-                else: prefix = f"From {start_name}, walk {'North/Up' if current_dir=='Atas' else 'South/Down' if current_dir=='Bawah' else 'East/Right' if current_dir=='Kanan' else 'West/Left'}"
+                else: prefix = f"From {start_name}, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'}"
             elif is_after_transition:
                 if p1['floor'].startswith("submap_"):
                     if language == "id": prefix = f"Setelah masuk, berjalanlah ke arah {current_dir}"
-                    else: prefix = f"After entering, walk {'North/Up' if current_dir=='Atas' else 'South/Down' if current_dir=='Bawah' else 'East/Right' if current_dir=='Kanan' else 'West/Left'}"
+                    else: prefix = f"After entering, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'}"
                 else:
                     if language == "id": prefix = f"Setelah keluar di {p1['floor']}, berjalanlah ke arah {current_dir}"
                     else: 
                         t_floor1 = get_translated_floor(p1['floor'], language)
-                        prefix = f"After exiting at {t_floor1}, walk {'North/Up' if current_dir=='Atas' else 'South/Down' if current_dir=='Bawah' else 'East/Right' if current_dir=='Kanan' else 'West/Left'}"
+                        prefix = f"After exiting at {t_floor1}, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'}"
                 is_after_transition = False
             else:
                 prefix = "Setelah belok, lurus terus" if language == "id" else "After turning, go straight"
                 
             if adj_room:
-                if language == "id": teks = f"{prefix} sampai ketemu {adj_room}, lalu bersiap belok {turn}."
-                else: teks = f"{prefix} until you see {adj_room}, then prepare to turn {turn}."
+                if language == "id": teks = f"{prefix} sampai ketemu {adj_room}, lalu belok {turn}."
+                else: teks = f"{prefix} until you see {adj_room}, then turn {turn}."
             else:
-                if language == "id": teks = f"{prefix} sampai persimpangan, lalu bersiap belok {turn}."
-                else: teks = f"{prefix} until the intersection, then prepare to turn {turn}."
+                if language == "id": teks = f"{prefix} sampai persimpangan, lalu belok {turn}."
+                else: teks = f"{prefix} until the intersection, then turn {turn}."
             
             langkah.append({
                 "teks": teks,
@@ -333,7 +409,7 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
             else: teks_akhir = f"You are already at {target_name}."
         else:
             if language == "id": teks_akhir = f"Dari {start_name}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
-            else: teks_akhir = f"From {start_name}, walk {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
+            else: teks_akhir = f"From {start_name}, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'} and you will arrive at {target_name}."
     elif is_after_transition:
         if current_dir is None:
             if language == "id": teks_akhir = f"Anda sudah sampai di {path[-1]['floor']}."
@@ -341,10 +417,10 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
         else:
             if path[-1]['floor'].startswith("submap_"):
                 if language == "id": teks_akhir = f"Setelah masuk, lurus ke arah {current_dir} dan Anda akan sampai di {target_name}."
-                else: teks_akhir = f"After entering, go straight {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
+                else: teks_akhir = f"After entering, go straight {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'} and you will arrive at {target_name}."
             else:
                 if language == "id": teks_akhir = f"Dari Lift di {path[-1]['floor']}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
-                else: teks_akhir = f"From the Lift at {get_translated_floor(path[-1]['floor'], language)}, walk {'North' if current_dir=='Atas' else 'South' if current_dir=='Bawah' else 'East' if current_dir=='Kanan' else 'West'} and you will arrive at {target_name}."
+                else: teks_akhir = f"From the Lift at {get_translated_floor(path[-1]['floor'], language)}, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'} and you will arrive at {target_name}."
     else:
         teks_akhir = f"Setelah belok, lurus terus dan Anda akan sampai di {target_name}." if language == "id" else f"After turning, go straight and you will arrive at {target_name}."
 
@@ -355,15 +431,3 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
     })
 
     return langkah
-
-
-# --- TESTING LOKAL ---
-if __name__ == "__main__":
-    print("\n=== MENGUJI A* GRID MODE ===")
-    hasil = cari_rute_grid("kiosk_lobi", "igd")
-    if hasil["status"] == "success":
-        print(f"Rute ditemukan! Melewati {len(hasil['jalur_grid'])} petak:")
-        for petak in hasil['jalur_grid']:
-            print(f" -> [X: {petak['x']}, Y: {petak['y']}]")
-    else:
-        print(hasil["pesan"])

@@ -1,9 +1,9 @@
-# Backend
-pip install fastapi uvicorn pydantic firebase-admin pytest sentence-transformers torch python-dotenv loguru
-
-# Frontend
-npm install react-konva
-npm install react-zoom-pan-pinch
-npm install react-router
-npm install -D vite
-npm install concurrently --save-dev
+fastapi
+uvicorn
+pydantic
+firebase-admin
+pytest
+sentence-transformers
+torch
+python-dotenv
+loguru
