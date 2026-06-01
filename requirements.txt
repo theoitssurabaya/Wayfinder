@@ -1,9 +1,10 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 firebase-admin
 pytest
 sentence-transformers
 torch
+numpy
 python-dotenv
 loguru
