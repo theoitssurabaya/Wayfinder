@@ -1,57 +1,58 @@
 # Smart Hospital Guide
 
-Aplikasi navigasi rumah sakit interaktif yang menggunakan algoritma pencarian rute *A-Star (A*)* dan AI *Natural Language Processing* (NLP) menggunakan `SentenceTransformers` untuk membantu pasien menemukan ruangan.
+Aplikasi navigasi rumah sakit interaktif yang menggunakan algoritma pencarian rute *A-Star (A*)* dan AI *Natural Language Processing* (NLP) menggunakan `SentenceTransformers` untuk membantu pasien menemukan ruangan secara fleksibel.
 
-## 1. Persiapan Kredensial Firebase (Penting!)
+## 1. Persiapan Kredensial Firebase (Sangat Penting!)
 
-Sebelum menjalankan apapun, *backend* membutuhkan akses ke *database* Firebase.
-1. Minta file `serviceAccountKey.json` dari pemilik/admin repositori.
-2. Letakkan file tersebut di dalam direktori `backend/`.
-   - Jalur file seharusnya menjadi: `backend/serviceAccountKey.json`
+Sebelum menjalankan apapun, *backend* membutuhkan akses ke *database* Firebase Anda.
+1. Minta atau *download* file `serviceAccountKey.json` dari *Project Settings* Firebase (Service Accounts).
+2. Letakkan file tersebut persis di dalam direktori `backend/`.
+   - Jalur lokasinya harus menjadi: `backend/serviceAccountKey.json`
 
-## 2. Setup Backend (Python)
+## 2. Setup & Menjalankan Backend (Terminal 1)
 
-*Backend* ditulis menggunakan **FastAPI** dan berjalan di Python 3.
+*Backend* dibangun menggunakan **FastAPI** (Python 3) untuk menjalankan mesin AI pencarian rute.
 
-1. Buka terminal dan buat *Virtual Environment* di direktori root:
+1. Buka terminal baru dan masuk ke folder backend:
    ```bash
-   python3 -m venv venv
+   cd backend
    ```
-2. Aktifkan *Virtual Environment*:
-   - **Mac/Linux:** `source venv/bin/activate`
+2. Buat *Virtual Environment*:
+   ```bash
+   python -m venv venv
+   ```
+3. Aktifkan *Virtual Environment*:
    - **Windows:** `venv\Scripts\activate`
-3. Instal semua paket Python (dependensi AI & API):
+   - **Mac/Linux:** `source venv/bin/activate`
+4. Instal semua library kecerdasan buatan dan API:
    ```bash
-   pip install -r requirements.txt
+   pip install -r ../requirements.txt
    ```
-4. Siapkan Environment Variables:
-   - Salin file `backend/.env.example` (jika ada) menjadi `backend/.env`.
+5. Jalankan server Backend:
+   ```bash
+   uvicorn main:app --host 0.0.0.0 --reload
+   ```
+*(Catatan: Saat dijalankan pertama kali, backend akan men-download model AI dan memakan waktu sekitar 5 detik untuk sinkronisasi peta).*
 
-## 3. Setup Frontend (React + Vite)
+## 3. Setup & Menjalankan Frontend (Terminal 2)
 
-*Frontend* dibangun menggunakan **React** dan **React-Konva** untuk merender peta interaktif.
+*Frontend* dibangun menggunakan **React** + **Vite** dan **React-Konva** untuk antarmuka visual peta gedung.
 
-1. Buka terminal baru dan arahkan ke folder `vite-project`:
+1. Buka jendela terminal baru lagi, lalu masuk ke folder frontend:
    ```bash
    cd vite-project
    ```
-2. Instal semua pustaka Node.js yang diperlukan:
+2. Instal semua pustaka JavaScript:
    ```bash
    npm install
    ```
-   *(Catatan: Paket seperti react-konva, react-router, dan vite sudah tercatat di package.json).*
+3. Jalankan server UI:
+   ```bash
+   npm run dev
+   ```
 
-## 4. Cara Menjalankan Aplikasi
+## 4. Cara Penggunaan
 
-Anda dapat menyalakan **Frontend** dan **Backend** secara bersamaan dengan hanya menjalankan SATU perintah dari dalam folder `vite-project`.
-
-```bash
-cd vite-project
-npm run dev
-```
-
-- **Frontend UI** akan otomatis terbuka di http://localhost:5173
-- **Backend API & AI Engine** akan otomatis berjalan di latar belakang pada http://localhost:8000
-
----
-*Perhatian: Saat pertama kali dijalankan, *backend* mungkin memakan waktu ~5 detik untuk melatih ulang AI berdasarkan data peta terbaru dari Firebase.*
+Setelah kedua terminal berjalan:
+- Buka **Frontend UI** di *browser* pada http://localhost:5173
+- Pilih bahasa, lalu coba cari rute dengan mengetik kata kunci kasual seperti *"Di mana dokter anak?"* atau memilih Kiosk serta Lantai di bilah samping.
