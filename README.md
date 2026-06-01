@@ -9,50 +9,40 @@ Sebelum menjalankan apapun, *backend* membutuhkan akses ke *database* Firebase A
 2. Letakkan file tersebut persis di dalam direktori `backend/`.
    - Jalur lokasinya harus menjadi: `backend/serviceAccountKey.json`
 
-## 2. Setup & Menjalankan Backend (Terminal 1)
+## 2. Setup Awal (Hanya dilakukan sekali)
 
-*Backend* dibangun menggunakan **FastAPI** (Python 3) untuk menjalankan mesin AI pencarian rute.
-
-1. Buka terminal baru dan masuk ke folder backend:
-   ```bash
-   cd backend
-   ```
-2. Buat *Virtual Environment*:
+1. Buka terminal di folder utama (*root*) dari repositori ini, lalu buat dan aktifkan *Virtual Environment* Python:
    ```bash
    python -m venv venv
    ```
-3. Aktifkan *Virtual Environment*:
+   **Cara Aktivasi:**
    - **Windows:** `venv\Scripts\activate`
    - **Mac/Linux:** `source venv/bin/activate`
-4. Instal semua library kecerdasan buatan dan API:
+
+2. Instal dependensi Backend:
    ```bash
-   pip install -r ../requirements.txt
+   pip install -r requirements.txt
    ```
-5. Jalankan server Backend:
-   ```bash
-   uvicorn main:app --host 0.0.0.0 --reload
-   ```
-*(Catatan: Saat dijalankan pertama kali, backend akan men-download model AI dan memakan waktu sekitar 5 detik untuk sinkronisasi peta).*
 
-## 3. Setup & Menjalankan Frontend (Terminal 2)
-
-*Frontend* dibangun menggunakan **React** + **Vite** dan **React-Konva** untuk antarmuka visual peta gedung.
-
-1. Buka jendela terminal baru lagi, lalu masuk ke folder frontend:
+3. Masuk ke folder Frontend dan instal dependensi Javascript:
    ```bash
    cd vite-project
-   ```
-2. Instal semua pustaka JavaScript:
-   ```bash
    npm install
    ```
-3. Jalankan server UI:
+
+## 3. Cara Menjalankan Aplikasi Secara Bersamaan (Backend & Frontend)
+
+Berkat skrip otomatis yang telah disesuaikan dengan semua sistem operasi (Mac, Linux, Windows), Anda **hanya perlu menjalankan satu baris perintah** untuk menghidupkan kedua server secara serentak.
+
+1. Buka terminal Anda.
+2. **Wajib:** Pastikan *Virtual Environment* Python sudah dalam posisi **aktif** (lihat cara aktivasi di atas).
+3. Masuk ke folder `vite-project` lalu jalankan skrip *dev*:
    ```bash
+   cd vite-project
    npm run dev
    ```
 
-## 4. Cara Penggunaan
-
-Setelah kedua terminal berjalan:
-- Buka **Frontend UI** di *browser* pada http://localhost:5173
-- Pilih bahasa, lalu coba cari rute dengan mengetik kata kunci kasual seperti *"Di mana dokter anak?"* atau memilih Kiosk serta Lantai di bilah samping.
+Setelah perintah dijalankan:
+- **Frontend UI** akan otomatis terbuka di http://localhost:5173
+- **Backend API & AI** akan otomatis berjalan di latar belakang pada http://localhost:8000
+*(Catatan: Saat dijalankan pertama kali, backend akan memakan waktu sekitar 5 detik untuk melatih model AI).*
