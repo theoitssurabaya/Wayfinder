@@ -101,6 +101,24 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
     };
   }, [rooms, kiosks, currentFloor]);
 
+  const scaleAndOffset = useMemo(() => {
+    if (!mapBounds || mapSize.width === 0 || mapSize.height === 0) {
+      return { scale: 1, x: 0, y: 0 };
+    }
+    const padding = 20;
+    const availableWidth = mapSize.width - padding * 2;
+    const availableHeight = mapSize.height - padding * 2;
+    const scaleX = availableWidth / mapBounds.width;
+    const scaleY = availableHeight / mapBounds.height;
+    const scale = Math.min(scaleX, scaleY, 2); // Limit maximum scale to 2x to avoid excessive stretching
+    
+    // Center the map bounds in the stage
+    const x = (mapSize.width - mapBounds.width * scale) / 2 - mapBounds.x * scale;
+    const y = (mapSize.height - mapBounds.height * scale) / 2 - mapBounds.y * scale;
+    
+    return { scale, x, y };
+  }, [mapBounds, mapSize]);
+
   const calculatedMapSize = useMemo(() => {
     let maxX = mapSize.width || 2000;
     let maxY = mapSize.height || 1500;
@@ -251,27 +269,28 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
   return (
     <div ref={containerRef} style={{ width: "100%", height: "100%", background: "#f5f5f5" }}>
       {mapSize.width > 0 && mapSize.height > 0 && (
-        <Stage width={calculatedMapSize.width} height={calculatedMapSize.height}>
+        <Stage width={mapSize.width} height={mapSize.height}>
           <Layer>
-            {showGrid && drawGrid()}
+            <Group scaleX={scaleAndOffset.scale} scaleY={scaleAndOffset.scale} x={scaleAndOffset.x} y={scaleAndOffset.y}>
+              {showGrid && drawGrid()}
 
-            {/* Visual Bounding Box (Warp/Wrap line) */}
-            {showBorder && mapBounds && (
-              <Rect 
-                x={mapBounds.x} 
-                y={mapBounds.y} 
-                width={mapBounds.width} 
-                height={mapBounds.height} 
-                fill="#ffffff" 
-                stroke="#1a73c8" 
-                strokeWidth={2.5} 
-                cornerRadius={16} 
-                shadowColor="rgba(26, 115, 200, 0.08)"
-                shadowBlur={10}
-                shadowOffset={{ x: 0, y: 4 }}
-                listening={false}
-              />
-            )}
+              {/* Visual Bounding Box (Warp/Wrap line) */}
+              {showBorder && mapBounds && (
+                <Rect 
+                  x={mapBounds.x} 
+                  y={mapBounds.y} 
+                  width={mapBounds.width} 
+                  height={mapBounds.height} 
+                  fill="#ffffff" 
+                  stroke="#1a73c8" 
+                  strokeWidth={2.5} 
+                  cornerRadius={16} 
+                  shadowColor="rgba(26, 115, 200, 0.08)"
+                  shadowBlur={10}
+                  shadowOffset={{ x: 0, y: 4 }}
+                  listening={false}
+                />
+              )}
             
             {/* Render Ruangan bersih senada background (Tanpa Endpoint) */}
             {rooms
@@ -334,32 +353,35 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
             })}
 
             {/* Akhir Static Layer */}
+            </Group>
           </Layer>
           
           {/* Layer Animasi Terpisah (SANGAT PENTING UNTUK PERFORMA MOBILE) */}
           <Layer>
-            {/* Garis Rute & Animasi Orang Berjalan */}
-            {pathPoints.length > 0 && (
-              <>
-                {/* Rute keseluruhan (redup) */}
-                <Line points={pathPoints} stroke="rgba(255, 0, 0, 0.2)" strokeWidth={5} lineCap="round" lineJoin="round" tension={0} />
-                
-                {/* Rute aktif & Animasi */}
-                {activePathPoints.length > 0 && (
-                  <>
-                    <Line ref={lineRef} points={activePathPoints} stroke="red" strokeWidth={5} dash={[10, 10]} lineCap="round" lineJoin="round" tension={0} />
-                    {activePathPoints.length >= 4 && (
-                      <Group ref={personRef}>
-                        <Rect ref={leftFootRef} x={0} y={-8} width={10} height={6} fill="#333" cornerRadius={3} offsetX={5} offsetY={3} />
-                        <Rect ref={rightFootRef} x={0} y={8} width={10} height={6} fill="#333" cornerRadius={3} offsetX={5} offsetY={3} />
-                        <Rect x={0} y={0} width={16} height={24} fill="#2196F3" cornerRadius={8} offsetX={8} offsetY={12} />
-                        <Circle x={0} y={0} radius={7} fill="#FFCCBC" stroke="#333" strokeWidth={1} />
-                      </Group>
-                    )}
-                  </>
-                )}
-              </>
-            )}
+            <Group scaleX={scaleAndOffset.scale} scaleY={scaleAndOffset.scale} x={scaleAndOffset.x} y={scaleAndOffset.y}>
+              {/* Garis Rute & Animasi Orang Berjalan */}
+              {pathPoints.length > 0 && (
+                <>
+                  {/* Rute keseluruhan (redup) */}
+                  <Line points={pathPoints} stroke="rgba(255, 0, 0, 0.2)" strokeWidth={5} lineCap="round" lineJoin="round" tension={0} />
+                  
+                  {/* Rute aktif & Animasi */}
+                  {activePathPoints.length > 0 && (
+                    <>
+                      <Line ref={lineRef} points={activePathPoints} stroke="red" strokeWidth={5} dash={[10, 10]} lineCap="round" lineJoin="round" tension={0} />
+                      {activePathPoints.length >= 4 && (
+                        <Group ref={personRef}>
+                          <Rect ref={leftFootRef} x={0} y={-8} width={10} height={6} fill="#333" cornerRadius={3} offsetX={5} offsetY={3} />
+                          <Rect ref={rightFootRef} x={0} y={8} width={10} height={6} fill="#333" cornerRadius={3} offsetX={5} offsetY={3} />
+                          <Rect x={0} y={0} width={16} height={24} fill="#2196F3" cornerRadius={8} offsetX={8} offsetY={12} />
+                          <Circle x={0} y={0} radius={7} fill="#FFCCBC" stroke="#333" strokeWidth={1} />
+                        </Group>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </Group>
           </Layer>
         </Stage>
       )}

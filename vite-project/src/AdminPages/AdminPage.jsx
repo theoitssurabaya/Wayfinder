@@ -382,11 +382,11 @@ export default function App() {
           </button>
           <button className="header-edit-btn" onClick={() => navigate("/edit")}>
             <EditIcon />
-            {getText('edit')}
+            <span>{getText('edit')}</span>
           </button>
           <button className="header-login-btn" onClick={openLogoutConfirm}>
             <LoginIcon />
-            {getText('logout')}
+            <span>{getText('logout')}</span>
           </button>
         </div>
       </header>
@@ -441,7 +441,7 @@ export default function App() {
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleSearchKey}
             />
-            <div style={{ cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => executeSearch(location, search)}>
+            <div className="search-btn-wrapper" onClick={() => executeSearch(location, search)}>
               <SearchIcon />
             </div>
           </div>

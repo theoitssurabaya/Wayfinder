@@ -472,7 +472,7 @@ export default function App() {
             </button>
             <button className="header-login-btn Onclick" onClick={() => setIsLoginOpen(true)}>
               <LoginIcon />
-              {getText('login')}
+              <span>{getText('login')}</span>
             </button>
           </div>
         </header>
@@ -532,10 +532,10 @@ export default function App() {
                   onChange={(e) => setSearch(e.target.value)}
                   onKeyDown={handleSearchKey}
                 />
-                <div onClick={startListening} title={language === 'en' ? 'Voice Search' : 'Pencarian Suara'}>
+                 <div className="mic-btn-wrapper" onClick={startListening} title={language === 'en' ? 'Voice Search' : 'Pencarian Suara'}>
                   <MicIcon isListening={isListening} />
                 </div>
-                <div style={{ cursor: "pointer", display: "flex", alignItems: "center" }} onClick={() => executeSearch(location, search)}>
+                <div className="search-btn-wrapper" onClick={() => executeSearch(location, search)}>
                   <SearchIcon />
                 </div>
               </div>

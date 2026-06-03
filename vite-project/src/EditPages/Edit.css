@@ -86,15 +86,15 @@
 .confirm-modal {
   background: white;
   border-radius: 12px;
-  padding: 50px;
-  max-width: 460px;
+  padding: 30px;
+  width: min(460px, 90vw);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   text-align: center;
 }
 
 .confirm-modal h3 {
   margin: 0 0 15px 0;
-  font-size: 40px;
+  font-size: 24px;
   color: #333;
 }
 
@@ -112,7 +112,7 @@
 }
 
 .confirm-btn {
-  padding: 16px 35px;
+  padding: 12px 28px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -137,4 +137,51 @@
 
 .confirm-btn.yes:hover {
   background: #155ab8;
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────── */
+@media (max-width: 768px) {
+  .edit-page-layout {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 64px);
+    padding: 12px;
+    gap: 12px;
+    overflow: hidden;
+  }
+  .edit-page-map {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .edit-page-right-panel {
+    height: 45%;
+    overflow-y: auto;
+    flex-shrink: 0;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 600px) {
+  .edit-page-header {
+    padding: 10px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .edit-page-logo {
+    font-size: 0.95rem;
+  }
+  .edit-page-actions {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .edit-page-header span {
+    display: none;
+  }
+  .edit-page-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
 }

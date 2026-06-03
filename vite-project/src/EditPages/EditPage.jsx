@@ -568,12 +568,12 @@ export default function EditPage() {
                 }}
                 style={{ padding: "8px 15px", background: "#1A73C8", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", marginLeft: "20px" }}
             >
-                {getText('back_to_main_floor')}
+                <span>{getText('back_to_main_floor')}</span>
             </button>
         )}
         <div className="edit-page-actions">
-          <button className="edit-page-btn cancel" onClick={() => setIsConfirmOpen(true)}>{getText('cancel')}</button>
-          <button className="edit-page-btn save" onClick={() => { setConfirmAction("save"); setIsConfirmOpen(true); }}>{getText('save_map')}</button>
+          <button className="edit-page-btn cancel" onClick={() => setIsConfirmOpen(true)}><span>{getText('cancel')}</span></button>
+          <button className="edit-page-btn save" onClick={() => { setConfirmAction("save"); setIsConfirmOpen(true); }}><span>{getText('save_map')}</span></button>
         </div>
       </header>
 
