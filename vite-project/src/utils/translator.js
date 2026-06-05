@@ -1,6 +1,5 @@
 export const translateName = (name, lang) => {
   if (!name) return "";
-  if (lang === 'id') return name;
   
   let translated = name;
   
@@ -68,32 +67,59 @@ export const translateName = (name, lang) => {
     "Taman": "Garden"
   };
 
-  // Convert Lantai X -> First Floor, Second Floor, etc.
-  const floorMatch = translated.match(/Lantai\s+(\d+)/i);
-  if (floorMatch) {
-    const num = parseInt(floorMatch[1], 10);
-    const ordinals = ["Zero", "First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth", "Thirteenth", "Fourteenth", "Fifteenth"];
-    if (num > 0 && num < ordinals.length) {
-      translated = translated.replace(/Lantai\s+\d+/i, `${ordinals[num]} Floor`);
-    } else {
-      translated = translated.replace(/Lantai\s+(\d+)/i, `Floor $1`);
+  const ordinals = ["Zero", "First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth", "Thirteenth", "Fourteenth", "Fifteenth"];
+
+  if (lang === 'en') {
+    // Convert Lantai X -> First Floor, Second Floor, etc.
+    const floorMatch = translated.match(/Lantai\s+(\d+)/i);
+    if (floorMatch) {
+      const num = parseInt(floorMatch[1], 10);
+      if (num > 0 && num < ordinals.length) {
+        translated = translated.replace(/Lantai\s+\d+/i, `${ordinals[num]} Floor`);
+      } else {
+        translated = translated.replace(/Lantai\s+(\d+)/i, `Floor $1`);
+      }
     }
-  }
 
-  // Urutkan kunci kamus dari yang paling panjang ke paling pendek
-  // Ini penting agar frasa 'Tangga Darurat' dieksekusi sebelum 'Tangga' (Mencegah 'Stairs Darurat')
-  const sortedKeys = Object.keys(dict).sort((a, b) => b.length - a.length);
+    const sortedKeys = Object.keys(dict).sort((a, b) => b.length - a.length);
+    if (dict[name]) return dict[name];
 
-  // Replace Exact matches first
-  if (dict[name]) return dict[name];
+    for (const id_word of sortedKeys) {
+      const en_word = dict[id_word];
+      const escapedWord = id_word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escapedWord}\\b`, 'gi');
+      translated = translated.replace(regex, en_word);
+    }
+  } else if (lang === 'id') {
+    // Reverse dictionary for EN -> ID translation
+    const reverseDict = {};
+    for (const [id_word, en_word] of Object.entries(dict)) {
+      if (!reverseDict[en_word]) reverseDict[en_word] = id_word; 
+    }
 
-  // Replace words
-  for (const id_word of sortedKeys) {
-    const en_word = dict[id_word];
-    // escape karakter khusus pada regex jika ada (walau di atas kebanyakan huruf)
-    const escapedWord = id_word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`\\b${escapedWord}\\b`, 'gi');
-    translated = translated.replace(regex, en_word);
+    // Convert First Floor -> Lantai 1
+    const floorMatchEn = translated.match(/([a-zA-Z]+)\s+Floor/i);
+    if (floorMatchEn) {
+      const word = floorMatchEn[1];
+      const num = ordinals.findIndex(o => o.toLowerCase() === word.toLowerCase());
+      if (num > 0) {
+        translated = translated.replace(new RegExp(`${word}\\s+Floor`, 'i'), `Lantai ${num}`);
+      }
+    }
+    const floorMatchNum = translated.match(/Floor\s+(\d+)/i);
+    if (floorMatchNum) {
+      translated = translated.replace(/Floor\s+(\d+)/i, `Lantai $1`);
+    }
+
+    const sortedEnKeys = Object.keys(reverseDict).sort((a, b) => b.length - a.length);
+    if (reverseDict[name]) return reverseDict[name];
+
+    for (const en_word of sortedEnKeys) {
+      const id_word = reverseDict[en_word];
+      const escapedWord = en_word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escapedWord}\\b`, 'gi');
+      translated = translated.replace(regex, id_word);
+    }
   }
 
   return translated;

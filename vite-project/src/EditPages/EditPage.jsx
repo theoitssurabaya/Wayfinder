@@ -226,7 +226,9 @@ export default function EditPage() {
       'top': { id: 'Atas', en: 'Top' },
       'bottom': { id: 'Bawah', en: 'Bottom' },
       'left': { id: 'Kiri', en: 'Left' },
-      'right': { id: 'Kanan', en: 'Right' }
+      'right': { id: 'Kanan', en: 'Right' },
+      'undo': { id: 'Urungkan', en: 'Undo' },
+      'redo': { id: 'Ulangi', en: 'Redo' }
     };
     return dict[key] ? dict[key][language] : key;
   };
@@ -618,6 +620,7 @@ export default function EditPage() {
                                 saveHistory(newElements); 
                             }}
                             originalElements={originalElements} 
+                            language={language}
                         />
                     ))}
                   </Layer>
@@ -657,7 +660,7 @@ export default function EditPage() {
                   style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep <= 0 ? "#f1f3f5" : "#ffffff", color: historyStep <= 0 ? "#adb5bd" : "#495057", border: "1px solid #ced4da", borderRadius: "4px", cursor: historyStep <= 0 ? "not-allowed" : "pointer", fontWeight: "bold" }}
                   title="Undo (Ctrl+Z)"
               >
-                  ↶ Undo
+                  ↶ {getText('undo')}
               </button>
               <button 
                   onClick={handleRedo}
@@ -665,7 +668,7 @@ export default function EditPage() {
                   style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep >= history.length - 1 ? "#f1f3f5" : "#ffffff", color: historyStep >= history.length - 1 ? "#adb5bd" : "#495057", border: "1px solid #ced4da", borderRadius: "4px", cursor: historyStep >= history.length - 1 ? "not-allowed" : "pointer", fontWeight: "bold" }}
                   title="Redo (Ctrl+Y)"
               >
-                  Redo ↷
+                  {getText('redo')} ↷
               </button>
           </div>
 
