@@ -85,6 +85,7 @@ export default function App() {
 
     recognition.onstart = () => {
       setIsListening(true);
+      setSearch("");
       latestTranscriptRef.current = "";
       if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
     };
@@ -430,6 +431,7 @@ export default function App() {
       } else {
         const roomName = translateName(data.data_target.nama_ruangan, language);
         setTargetRoomName(roomName);
+        setSearch(data.data_target.nama_ruangan); // Update dropdown to show the matched NLP room
         setPathData(data.jalur_koordinat);
         setNavigationSteps(data.langkah_navigasi);
         setActiveStepIndex(0);
@@ -586,49 +588,50 @@ export default function App() {
                 </div>
               )}
 
-              <div className="search-wrapper" style={{ marginTop: "12px" }}>
-                <input
-                  className="search-input"
-                  type="text"
-                  placeholder={getText('search_placeholder')}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  onKeyDown={handleSearchKey}
-                />
-                <div className="mic-btn-wrapper" onClick={startListening} title={language === 'en' ? 'Voice Search' : 'Pencarian Suara'}>
-                  <MicIcon isListening={isListening} />
-                </div>
-                <button type="button" className="search-btn-wrapper" onClick={() => executeSearch(location, search)}>
-                  <SearchIcon />
-                </button>
-              </div>
-
-              {/* RUANGAN DROPDOWN */}
+              {/* SEARCH & ROOM DROPDOWN */}
               <div className="dropdown-wrapper" style={{ marginTop: "12px" }}>
                 <select
                   className="dropdown-select"
+                  style={{ paddingRight: "74px" }}
                   value={(() => {
                     const matchedRoom = rooms.find(r => r.name === search || translateName(r.name, language) === search);
                     return matchedRoom ? matchedRoom.name : "";
                   })()}
                   onChange={(e) => {
                     const rawName = e.target.value;
-                    const translatedName = translateName(rawName, language);
-                    setSearch(translatedName);
+                    setSearch(rawName);
                     executeSearch(location, rawName);
                   }}
                 >
-                  <option value="" disabled>{getText('select_room')}</option>
+                  <option value="" disabled style={{ color: "#1a2533" }}>
+                    {(() => {
+                      if (isListening && !search) return language === 'en' ? 'Listening...' : 'Mendengarkan...';
+                      const matchedRoom = rooms.find(r => r.name === search || translateName(r.name, language) === search);
+                      if (search && !matchedRoom) return `🗣️ ${search}`;
+                      return getText('search_placeholder');
+                    })()}
+                  </option>
                   {floors.filter(f => !f.startsWith("submap_")).map((floorName) => (
                     <optgroup key={floorName} label={translateName(floorName, language)}>
                       {rooms
-                        .filter(room => room.floor === floorName || room.floor.startsWith(`submap_${rooms.find(r => r.name === room.name)?.id}`))
+                        .filter(room => {
+                          if (room.floor === floorName) return true;
+                          if (room.floor.startsWith("submap_")) {
+                            const parentId = room.floor.replace("submap_", "");
+                            const parentRoom = rooms.find(r => r.id === parentId);
+                            return parentRoom && parentRoom.floor === floorName;
+                          }
+                          return false;
+                        })
                         .map((room) => (
                           <option key={room.id} value={room.name}>{translateName(room.name, language)}</option>
                         ))}
                     </optgroup>
                   ))}
                 </select>
+                <div className="mic-btn-wrapper" onClick={startListening} title={language === 'en' ? 'Voice Search' : 'Pencarian Suara'} style={{ right: "36px" }}>
+                  <MicIcon isListening={isListening} />
+                </div>
                 <ChevronIcon />
               </div>
 

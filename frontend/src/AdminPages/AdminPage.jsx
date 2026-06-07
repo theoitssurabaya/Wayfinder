@@ -269,6 +269,7 @@ export default function App() {
       } else {
         const roomName = translateName(data.data_target.nama_ruangan, language);
         setTargetRoomName(roomName);
+        setSearch(data.data_target.nama_ruangan); // Update dropdown to show the matched NLP room
         setPathData(data.jalur_koordinat);
         setNavigationSteps(data.langkah_navigasi);
         setActiveStepIndex(0);
@@ -455,21 +456,7 @@ export default function App() {
             <ChevronIcon />
           </div>
 
-          <div className="search-wrapper" style={{ marginTop: "12px" }}>
-            <input
-              className="search-input"
-              type="text"
-              placeholder={getText('search_placeholder')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={handleSearchKey}
-            />
-            <button type="button" className="search-btn-wrapper" onClick={() => executeSearch(location, search)}>
-              <SearchIcon />
-            </button>
-          </div>
-
-          {/* RUANGAN DROPDOWN (BARU) */}
+          {/* SEARCH & ROOM DROPDOWN */}
           <div className="dropdown-wrapper" style={{ marginTop: "12px" }}>
             <select
               className="dropdown-select"
@@ -479,16 +466,23 @@ export default function App() {
               })()}
               onChange={(e) => {
                 const rawName = e.target.value;
-                const translatedName = translateName(rawName, language);
-                setSearch(translatedName); 
+                setSearch(rawName); 
                 executeSearch(location, rawName);
               }}
             >
-              <option value="" disabled>{getText('select_room')}</option>
+              <option value="" disabled>{getText('search_placeholder')}</option>
               {floors.filter(f => !f.startsWith("submap_")).map((floorName) => (
                 <optgroup key={floorName} label={translateName(floorName, language)}>
                   {rooms
-                    .filter(room => room.floor === floorName || room.floor.startsWith(`submap_${rooms.find(r=>r.name===room.name)?.id}`))
+                    .filter(room => {
+                      if (room.floor === floorName) return true;
+                      if (room.floor.startsWith("submap_")) {
+                        const parentId = room.floor.replace("submap_", "");
+                        const parentRoom = rooms.find(r => r.id === parentId);
+                        return parentRoom && parentRoom.floor === floorName;
+                      }
+                      return false;
+                    })
                     .map((room) => (
                     <option key={room.id} value={room.name}>{translateName(room.name, language)}</option>
                   ))}

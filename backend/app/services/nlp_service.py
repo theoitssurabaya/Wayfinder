@@ -77,6 +77,38 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id"):
         pesan = "Sistem sedang memuat data peta, mohon tunggu." if language == "id" else "System is loading map data, please wait."
         return {"status": "error", "pesan": pesan}
 
+    from app.core import state as waypoint_graph
+
+    # EXACT MATCH CHECK
+    exact_matches = []
+    input_lower = input_pengunjung.lower().strip()
+    for r_id, room in waypoint_graph.RUANGAN_GRID.items():
+        if input_lower == room.get("name", "").lower().strip() or input_pengunjung == r_id:
+            exact_matches.append(r_id)
+            
+    if exact_matches:
+        if len(exact_matches) == 1:
+            return {"status": "success", "target_id": exact_matches[0], "confidence_score": 1.0}
+        else:
+            if start_node_id:
+                start_room = waypoint_graph.RUANGAN_GRID.get(start_node_id)
+                if start_room:
+                    start_floor = start_room.get("floor", "Lantai 1")
+                    start_x = start_room.get("x", 0)
+                    start_y = start_room.get("y", 0)
+                    terbaik_jarak = float('inf')
+                    terbaik_id = exact_matches[0]
+                    for m_id in exact_matches:
+                        m_room = waypoint_graph.RUANGAN_GRID.get(m_id)
+                        if not m_room: continue
+                        floor_penalty = 0 if m_room.get("floor", "Lantai 1") == start_floor else 10000
+                        jarak = abs(start_x - m_room.get("x", 0)) + abs(start_y - m_room.get("y", 0)) + floor_penalty
+                        if jarak < terbaik_jarak:
+                            terbaik_jarak = jarak
+                            terbaik_id = m_id
+                    return {"status": "success", "target_id": terbaik_id, "confidence_score": 1.0}
+            return {"status": "success", "target_id": exact_matches[0], "confidence_score": 1.0}
+
     input_bersih = bersihkan_teks(input_pengunjung)
     if not input_bersih:
          pesan = "Mohon masukkan tujuan yang lebih spesifik." if language == "id" else "Please enter a more specific destination."
