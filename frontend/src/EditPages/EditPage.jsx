@@ -582,6 +582,23 @@ export default function EditPage() {
       {isConfirmOpen && (
         <div className="modal-overlay">
           <div className="confirm-modal">
+            {confirmAction === "save" ? (
+              <div className="confirm-icon-badge save-badge">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                  <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                  <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+              </div>
+            ) : (
+              <div className="confirm-icon-badge cancel-badge">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                  <line x1="12" y1="9" x2="12" y2="13"></line>
+                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+              </div>
+            )}
             <h3>{confirmAction === "save" ? getText('save_confirm') : getText('cancel_confirm')}</h3>
             <p>{confirmAction === "save" ? getText('are_you_sure_save') : getText('are_you_sure_cancel')}</p>
             <div className="confirm-modal-actions">

@@ -395,6 +395,13 @@ export default function App() {
       {isConfirmOpen && (
         <div className="modal-overlay" onClick={handleLogoutNo}>
           <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-icon-badge logout-badge">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                <polyline points="16 17 21 12 16 7"></polyline>
+                <line x1="21" y1="12" x2="9" y2="12"></line>
+              </svg>
+            </div>
             <h3>{getText('confirm_logout')}</h3>
             <p>{getText('are_you_sure_logout')}</p>
             <div className="confirm-modal-actions">
@@ -408,6 +415,12 @@ export default function App() {
       {isLockConfirmOpen && (
         <div className="modal-overlay" onClick={handleLockNo}>
           <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-icon-badge lock-badge">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+            </div>
             <h3>{getText('confirm_lock_title')}</h3>
             <p>{getText('are_you_sure_lock')} <strong>{kiosks.find(k => k.id === kioskToLock)?.name ? translateName(kiosks.find(k => k.id === kioskToLock).name, language) : translateName(kioskToLock, language)}</strong>?</p>
             <div className="confirm-modal-actions">
@@ -421,6 +434,12 @@ export default function App() {
       {isUnlockConfirmOpen && (
         <div className="modal-overlay" onClick={handleUnlockNo}>
           <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-icon-badge unlock-badge">
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+              </svg>
+            </div>
             <h3>{getText('confirm_unlock_title')}</h3>
             <p>{getText('are_you_sure_unlock')}</p>
             <div className="confirm-modal-actions">
