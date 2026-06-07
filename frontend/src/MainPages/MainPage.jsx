@@ -56,6 +56,8 @@ export default function App() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [errorMsg, setErrorMsg] = useState("");
+  const [isShaking, setIsShaking] = useState(false);
   const [kiosks, setKiosks] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [pathData, setPathData] = useState([]);
@@ -486,11 +488,18 @@ export default function App() {
   };
 
   const handleLogin = () => {
-    if (username.trim() && password.trim()) {
+    const u = username.trim();
+    const p = password.trim();
+    if ((u === "admin" && p === "admin") || (u === "admin" && p === "admin123")) {
       setIsLoginOpen(false);
       setUsername("");
       setPassword("");
+      setErrorMsg("");
       navigate("/admin");
+    } else {
+      setErrorMsg("akun tidak valid, silahkan coba lagi!");
+      setIsShaking(true);
+      setTimeout(() => setIsShaking(false), 500);
     }
   };
 
@@ -506,7 +515,7 @@ export default function App() {
             >
               {language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}
             </button>
-            <button className="header-login-btn Onclick" onClick={() => setIsLoginOpen(true)}>
+            <button className="header-login-btn Onclick" onClick={() => { setIsLoginOpen(true); setErrorMsg(""); setUsername(""); setPassword(""); }}>
               <LoginIcon />
               <span>{getText('login')}</span>
             </button>
@@ -515,19 +524,74 @@ export default function App() {
       )}
 
       {isLoginOpen && (
-        <div className="modal-overlay" onClick={() => setIsLoginOpen(false)}>
-          <div className="login-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="close-btn" onClick={() => setIsLoginOpen(false)}>×</button>
-            <h2>{getText('admin_login_title')}</h2>
-            <div className="input-group">
-              <label>{getText('username')}</label>
-              <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
+        <div className="modal-overlay glass-overlay" onClick={() => { setIsLoginOpen(false); setErrorMsg(""); }}>
+          <div className={`login-modal-card ${isShaking ? "shake-anim" : ""}`} onClick={(e) => e.stopPropagation()}>
+            <button className="close-modal-btn" onClick={() => { setIsLoginOpen(false); setErrorMsg(""); }}>×</button>
+            <div className="login-header">
+              <div className="login-icon-badge">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </div>
+              <h2>{getText('admin_login_title')}</h2>
+              <p className="login-subtitle">Silahkan masukkan akun administrator Anda</p>
             </div>
-            <div className="input-group">
-              <label>{getText('password')}</label>
-              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
+            
+            {errorMsg && (
+              <div className="login-error-alert animate-fade-in">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span>{errorMsg}</span>
+              </div>
+            )}
+            
+            <div className="login-form-body">
+              <div className="modern-input-group">
+                <label>{getText('username')}</label>
+                <div className="input-with-icon">
+                  <svg className="field-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <input 
+                    type="text" 
+                    placeholder="Contoh: admin" 
+                    value={username} 
+                    onChange={(e) => setUsername(e.target.value)} 
+                    onKeyDown={(e) => e.key === "Enter" && handleLogin()} 
+                  />
+                </div>
+              </div>
+              
+              <div className="modern-input-group">
+                <label>{getText('password')}</label>
+                <div className="input-with-icon">
+                  <svg className="field-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                  </svg>
+                  <input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    value={password} 
+                    onChange={(e) => setPassword(e.target.value)} 
+                    onKeyDown={(e) => e.key === "Enter" && handleLogin()} 
+                  />
+                </div>
+              </div>
+              
+              <button className="modern-submit-btn" onClick={handleLogin}>
+                <span>{getText('login_btn')}</span>
+                <svg className="btn-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="5" y1="12" x2="19" y2="12"></line>
+                  <polyline points="12 5 19 12 12 19"></polyline>
+                </svg>
+              </button>
             </div>
-            <button className="submit-login-btn" onClick={handleLogin}>{getText('login_btn')}</button>
           </div>
         </div>
       )}
