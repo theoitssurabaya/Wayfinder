@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, query, orderBy, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../firebase";
 import SharedMap from "../components/SharedMap";
 import { translateName } from "../utils/translator";
@@ -59,6 +59,19 @@ export default function App() {
     return localStorage.getItem('theme') === 'dark';
   });
 
+  const [activities, setActivities] = useState([]);
+
+  const addActivityLog = async (titleId, titleEn, descId, descEn) => {
+    try {
+      await addDoc(collection(db, "Logs"), {
+        timestamp: serverTimestamp(),
+        title: { id: titleId, en: titleEn },
+        desc: { id: descId, en: descEn }
+      });
+    } catch (e) {
+      console.error("Failed to add activity log", e);
+    }
+  };
   useEffect(() => {
     document.body.classList.toggle('dark-mode', isDarkMode);
   }, [isDarkMode]);
@@ -161,9 +174,26 @@ export default function App() {
       });
     });
 
+    // 3. Listen ke Logs
+    const qLogs = query(collection(db, "Logs"), orderBy("timestamp", "desc"), limit(50));
+    const unsubscribeLogs = onSnapshot(qLogs, (logSnap) => {
+      const loadedLogs = [];
+      logSnap.forEach((docSnap) => {
+        const data = docSnap.data();
+        let timeString = "";
+        if (data.timestamp) {
+          const date = data.timestamp.toDate();
+          timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        loadedLogs.push({ id: docSnap.id, time: timeString, ...data });
+      });
+      setActivities(loadedLogs);
+    });
+
     return () => {
       unsubscribeKiosks();
       unsubscribeRooms();
+      unsubscribeLogs();
     };
   }, []);
 
@@ -335,6 +365,12 @@ export default function App() {
       await updateDoc(doc(db, "Kiosks", kioskToLock), { isLocked: true });
       localStorage.setItem("locked_kiosk_id", kioskToLock);
       setLockedKiosk(kioskToLock);
+      
+      const kioskInfo = kiosks.find(k => k.id === kioskToLock);
+      const kioskNameId = kioskInfo?.name ? translateName(kioskInfo.name, 'id') : kioskToLock;
+      const kioskNameEn = kioskInfo?.name ? translateName(kioskInfo.name, 'en') : kioskToLock;
+      await addActivityLog("Kiosk Dikunci", "Kiosk Locked", `Mengunci ${kioskNameId}`, `Locked ${kioskNameEn}`);
+
       setIsLockConfirmOpen(false);
       setKioskToLock("");
     } catch (e) {
@@ -352,6 +388,11 @@ export default function App() {
     if (lockedKiosk) {
       try {
         await updateDoc(doc(db, "Kiosks", lockedKiosk), { isLocked: false });
+        
+        const kioskInfo = kiosks.find(k => k.id === lockedKiosk);
+        const kioskNameId = kioskInfo?.name ? translateName(kioskInfo.name, 'id') : lockedKiosk;
+        const kioskNameEn = kioskInfo?.name ? translateName(kioskInfo.name, 'en') : lockedKiosk;
+        await addActivityLog("Kiosk Dibuka Kunci", "Kiosk Unlocked", `Melepas kunci ${kioskNameId}`, `Unlocked ${kioskNameEn}`);
       } catch (e) {
         console.error("Gagal update DB saat unlock", e);
       }
@@ -370,25 +411,7 @@ export default function App() {
       <header className="header">
         <span className="header-logo">Wayfinder</span>
         <div className="header-actions" style={{display: "flex", gap: "10px", alignItems: "center"}}>
-          {lockedKiosk ? (
-            <div style={{display: "flex", gap: "5px", alignItems: "center", background: "var(--white)", color: "var(--text-main)", padding: "5px 10px", borderRadius: "5px", fontSize: "14px", fontWeight: "bold"}}>
-              🔒 {kiosks.find(k => k.id === lockedKiosk)?.name ? translateName(kiosks.find(k => k.id === lockedKiosk).name, language) : translateName(lockedKiosk, language)}
-              <button onClick={() => setIsUnlockConfirmOpen(true)} style={{marginLeft: "10px", background: "#ff4d4f", color: "white", border: "none", borderRadius: "3px", cursor: "pointer", padding: "2px 8px", fontSize: "12px"}}>{getText('unlock')}</button>
-            </div>
-          ) : (
-            <select 
-              value="" 
-              onChange={(e) => { setKioskToLock(e.target.value); setIsLockConfirmOpen(true); }}
-              style={{padding: "5px", borderRadius: "5px", border: "1px solid var(--border)", background: "var(--white)", color: "var(--text-main)", cursor: "pointer"}}
-            >
-              <option value="" disabled>{getText('set_kiosk_placeholder')}</option>
-              {kiosks.map(k => (
-                <option key={k.id} value={k.id} disabled={k.isLocked}>
-                  {translateName(k.name || k.id, language)} {k.isLocked ? (language === 'id' ? '(Sedang Dipakai)' : '(In Use)') : ''}
-                </option>
-              ))}
-            </select>
-          )}
+
           <button 
             onClick={toggleTheme} 
             className="theme-toggle"
@@ -473,45 +496,78 @@ export default function App() {
       )}
 
       <div className="main-layout">
-        <aside className="left-panel">
-
-
-          <div className="floor-group">
-            <div className="dropdown-wrapper">
-              <select
-                className="dropdown-select"
-                value={(() => {
-                  if (floor.startsWith("submap_")) {
-                    const parentId = floor.replace("submap_", "");
-                    const parent = rooms.find(r => r.id === parentId);
-                    return parent ? parent.floor : "Lantai 1";
-                  }
-                  return floor;
-                })()}
-                onChange={(e) => setFloor(e.target.value)}
-              >
-                <option value="" disabled>{getText('select_floor')}</option>
-                {floors.filter(f => !f.startsWith("submap_")).map((f) => (
-                  <option key={f} value={f}>{translateName(f, language)}</option>
-                ))}
-              </select>
-              <ChevronIcon />
-            </div>
-            {floor && (
-              <div className="floor-selected-chip">
-                {(() => {
-                  let dFloor = floor;
-                  if (floor.startsWith("submap_")) {
-                    const parentId = floor.replace("submap_", "");
-                    const parent = rooms.find(r => r.id === parentId);
-                    dFloor = parent ? parent.floor : "Lantai 1";
-                  }
-                  return translateName(dFloor, language);
-                })()}
+        <aside className="left-panel admin-sidebar">
+          
+          {/* OPSI 2: MINI ANALYTICS */}
+          <div className="admin-widget">
+            <h3>{language === 'id' ? 'Statistik Sistem' : 'System Analytics'}</h3>
+            <div className="stat-grid">
+              <div className="stat-card">
+                <span className="stat-value">{rooms.length}</span>
+                <span className="stat-label">{language === 'id' ? 'Total Ruangan' : 'Total Rooms'}</span>
               </div>
-            )}
+              <div className="stat-card">
+                <span className="stat-value">{kiosks.length}</span>
+                <span className="stat-label">{language === 'id' ? 'Kiosk Aktif' : 'Active Kiosks'}</span>
+              </div>
+            </div>
           </div>
 
+          {/* OPSI 1: KIOSK MANAGER */}
+          <div className="admin-widget kiosk-manager-widget">
+            <h3>{language === 'id' ? 'Manajemen Kiosk' : 'Kiosk Manager'}</h3>
+            <div className="kiosk-list-container">
+              {kiosks.filter(k => !k.name?.toLowerCase().includes('pintu')).length > 0 ? 
+                kiosks.filter(k => !k.name?.toLowerCase().includes('pintu')).map(k => {
+                const isLocked = lockedKiosk === k.id;
+                return (
+                  <div key={k.id} className={`kiosk-list-item ${isLocked ? 'locked' : ''}`}>
+                    <div className="kiosk-info">
+                      <span className="kiosk-name">{translateName(k.name, language)}</span>
+                      <span className="kiosk-floor">{translateName(k.floor, language)}</span>
+                    </div>
+                    <div className="kiosk-action">
+                      {isLocked ? (
+                        <button className="kiosk-action-btn unlock" onClick={() => {
+                          setKioskToLock(k.id);
+                          setIsUnlockConfirmOpen(true);
+                        }}>
+                          {getText('unlock')}
+                        </button>
+                      ) : (
+                        <button className="kiosk-action-btn lock" onClick={() => {
+                          setKioskToLock(k.id);
+                          setIsLockConfirmOpen(true);
+                        }}>
+                          Lock
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              }) : (
+                <p className="empty-state">{language === 'id' ? 'Tidak ada kiosk terdeteksi' : 'No kiosks detected'}</p>
+              )}
+            </div>
+          </div>
+
+          {/* OPSI 3: ACTIVITY LOG (MOCK) */}
+          <div className="admin-widget activity-log-widget">
+            <h3>{language === 'id' ? 'Aktivitas Terbaru' : 'Recent Activity'}</h3>
+            <div className="activity-list">
+              {activities.length > 0 ? activities.map((act) => (
+                <div key={act.id} className="activity-item">
+                  <div className="activity-time">{act.time || "--:--"}</div>
+                  <div className="activity-details">
+                    <div className="activity-title">{act.title ? act.title[language] : ""}</div>
+                    <div className="activity-desc">{act.desc ? act.desc[language] : ""}</div>
+                  </div>
+                </div>
+              )) : (
+                <p className="empty-state">{language === 'id' ? 'Belum ada aktivitas' : 'No activity yet'}</p>
+              )}
+            </div>
+          </div>
           {/* DYNAMIC NAVIGATION TEXT BOX */}
           {(outputText || navigationSteps.length > 0) && (
             <div className="destination-output-dynamic">
@@ -538,6 +594,39 @@ export default function App() {
         </aside>
         
         <main className="map-panel" style={{ position: "relative" }}>
+          {/* VERTICAL FLOOR SCRUBBER (OPTION 1) */}
+          <div className="vertical-scrubber-wrapper">
+            {floors.filter(f => !f.startsWith("submap_")).reverse().map((f) => {
+              const isActive = (() => {
+                if (floor.startsWith("submap_")) {
+                  const parentId = floor.replace("submap_", "");
+                  const parent = rooms.find(r => r.id === parentId);
+                  return parent ? parent.floor === f : false;
+                }
+                return floor === f;
+              })();
+              
+              let shortName = translateName(f, language);
+              // Extract short format (e.g., "1" instead of "Lantai 1")
+              if (language === 'id') {
+                shortName = shortName.replace("Lantai ", "").replace("Basement", "B");
+              } else {
+                shortName = shortName.replace("Floor ", "").replace("Basement", "B");
+              }
+
+              return (
+                <button
+                  key={f}
+                  className={`scrubber-btn ${isActive ? 'active' : ''}`}
+                  onClick={() => setFloor(f)}
+                  title={translateName(f, language)}
+                >
+                  {shortName}
+                </button>
+              );
+            })}
+          </div>
+
           {floor.startsWith("submap_") && (
               <button 
                   onClick={() => {

@@ -792,6 +792,12 @@ export default function App() {
             </div>
             
             {/* QUICK ACTIONS MOVED OUTSIDE TIMELINE CONTAINER */}
+            <div style={{ padding: "0 10px", marginTop: "10px", marginBottom: "10px" }}>
+              <p style={{ fontSize: "13px", color: "var(--text-main)", margin: 0, fontWeight: "700", letterSpacing: "0.5px", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                {language === 'id' ? 'Pencarian Cepat' : 'Quick Searches'}
+              </p>
+            </div>
             <div className="quick-actions" style={{ marginBottom: "15px", padding: "0 10px" }}>
               <button className="quick-action-btn" onClick={() => { setSearch("IGD"); executeSearch(location, "IGD"); }}>
                 <span>🚨</span> {language === 'id' ? 'IGD' : 'ER'}
@@ -813,41 +819,7 @@ export default function App() {
               </button>
             </div>
 
-            <div className="floor-group">
-                <div className="dropdown-wrapper">
-                  <select
-                    className="dropdown-select"
-                    value={(() => {
-                      if (floor.startsWith("submap_")) {
-                        const parentId = floor.replace("submap_", "");
-                        const parent = rooms.find(r => r.id === parentId);
-                        return parent ? parent.floor : "Lantai 1";
-                      }
-                      return floor;
-                    })()}
-                    onChange={(e) => setFloor(e.target.value)}
-                  >
-                    <option value="" disabled>{getText('select_floor')}</option>
-                    {floors.filter(f => !f.startsWith("submap_")).map((f) => (
-                      <option key={f} value={f}>{translateName(f, language)}</option>
-                    ))}
-                  </select>
-                  <ChevronIcon />
-                </div>
-                {floor && (
-                  <div className="floor-selected-chip">
-                    {(() => {
-                      let dFloor = floor;
-                      if (floor.startsWith("submap_")) {
-                        const parentId = floor.replace("submap_", "");
-                        const parent = rooms.find(r => r.id === parentId);
-                        dFloor = parent ? parent.floor : "Lantai 1";
-                      }
-                      return translateName(dFloor, language);
-                    })()}
-                  </div>
-                )}
-              </div>
+
             </>
           )}
 
@@ -927,6 +899,40 @@ export default function App() {
         </aside>
 
         <main className="map-panel" style={{ position: "relative" }}>
+          
+          {/* VERTICAL FLOOR SCRUBBER (OPTION 1) */}
+          <div className="vertical-scrubber-wrapper">
+            {floors.filter(f => !f.startsWith("submap_")).reverse().map((f) => {
+              const isActive = (() => {
+                if (floor.startsWith("submap_")) {
+                  const parentId = floor.replace("submap_", "");
+                  const parent = rooms.find(r => r.id === parentId);
+                  return parent ? parent.floor === f : false;
+                }
+                return floor === f;
+              })();
+              
+              let shortName = translateName(f, language);
+              // Extract short format (e.g., "1" instead of "Lantai 1")
+              if (language === 'id') {
+                shortName = shortName.replace("Lantai ", "").replace("Basement", "B");
+              } else {
+                shortName = shortName.replace("Floor ", "").replace("Basement", "B");
+              }
+
+              return (
+                <button
+                  key={f}
+                  className={`scrubber-btn ${isActive ? 'active' : ''}`}
+                  onClick={() => setFloor(f)}
+                  title={translateName(f, language)}
+                >
+                  {shortName}
+                </button>
+              );
+            })}
+          </div>
+
           {floor.startsWith("submap_") && (
             <button
               onClick={() => {

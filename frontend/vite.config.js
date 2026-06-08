@@ -17,5 +17,18 @@ export default defineConfig({
         secure: false
       }
     }
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('firebase')) return 'firebase';
+            if (id.includes('konva') || id.includes('react-zoom-pan-pinch')) return 'map';
+            return 'vendor';
+          }
+        }
+      }
+    }
   }
 })
