@@ -310,7 +310,7 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
                 const fontSize = Math.max(8, Math.min(room.width / 3, room.height / 2.5, 15));
                 
                 // Calculate minimum width required for the longest word so it doesn't break
-                const minRequiredWidth = (longestWordLen * fontSize * 0.6) + 10;
+                const minRequiredWidth = (longestWordLen * fontSize * 0.8) + 10;
                 const virtualWidth = Math.max(room.width, minRequiredWidth);
                 const virtualX = room.x - (virtualWidth - room.width) / 2;
                 
@@ -348,7 +348,7 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
                 const fontSize = Math.max(8, Math.min(kiosk.width / 3, kiosk.height / 2.5, 14));
                 
                 // Calculate minimum width required for the longest word so it doesn't break
-                const minRequiredWidth = (longestWordLen * fontSize * 0.6) + 10;
+                const minRequiredWidth = (longestWordLen * fontSize * 0.8) + 10;
                 const virtualWidth = Math.max(kiosk.width, minRequiredWidth);
                 const virtualX = kiosk.x - (virtualWidth - kiosk.width) / 2;
                 

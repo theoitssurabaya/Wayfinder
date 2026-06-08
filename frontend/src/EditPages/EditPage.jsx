@@ -48,7 +48,7 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
     Math.min(shapeProps.width / 3, shapeProps.height / 2.5, 15)
   );
   
-  const minRequiredWidth = (longestWordLen * dynamicFontSize * 0.6) + 10;
+  const minRequiredWidth = (longestWordLen * dynamicFontSize * 0.8) + 10;
   const virtualWidth = Math.max(shapeProps.width, minRequiredWidth);
   const virtualX = shapeProps.x - (virtualWidth - shapeProps.width) / 2;
 

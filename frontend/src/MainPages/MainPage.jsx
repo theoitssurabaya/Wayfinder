@@ -662,7 +662,15 @@ export default function App() {
                   type="text"
                   placeholder={isListening ? (language === 'en' ? 'Listening...' : 'Mendengarkan...') : getText('search_placeholder')}
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSearch(val);
+                    // Auto-trigger search if it exactly matches a room name
+                    const matchedRoom = rooms.find(r => r.name.toLowerCase() === val.toLowerCase() || translateName(r.name, language).toLowerCase() === val.toLowerCase());
+                    if (matchedRoom && location) {
+                      executeSearch(location, matchedRoom.name);
+                    }
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       executeSearch(location, search);
