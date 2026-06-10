@@ -25,11 +25,11 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
       const currentLang = localStorage.getItem('language') || 'id';
       const englishKeywords = ['room', 'clinic', 'ward', 'pharmacy', 'emergency', 'lift', 'stairs', 'cashier', 'door'];
       const indoKeywords = ['ruang', 'poli', 'rawat', 'farmasi', 'apotek', 'ugd', 'igd', 'tangga', 'kasir', 'pintu'];
-      
+
       const lowerName = newName.toLowerCase();
       const hasEnglish = englishKeywords.some(kw => lowerName.includes(kw));
       const hasIndo = indoKeywords.some(kw => lowerName.includes(kw));
-      
+
       if (currentLang === 'id' && hasEnglish && !hasIndo) {
         alert("Anda sedang dalam mode Bahasa Indonesia (ID), namun Anda memasukkan nama dalam Bahasa Inggris. Tolong sesuaikan!");
       } else if (currentLang === 'en' && hasIndo && !hasEnglish) {
@@ -44,25 +44,25 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
   const textContent = translateName(shapeProps.name || (shapeProps.type === 'kiosk' ? 'Kiosk' : 'Tanpa Nama'), language);
   const longestWordLen = Math.max(...textContent.split(' ').map(w => w.length), 1);
   const actualUsableWidth = Math.max(10, shapeProps.width - 12);
-  
+
   const maxFontSizeWidth = actualUsableWidth / (longestWordLen * 0.85);
   const maxFontSizeHeight = shapeProps.height / 2.5;
   const dynamicFontSize = Math.max(6, Math.min(14, maxFontSizeWidth, maxFontSizeHeight));
 
   const getVisualColors = useCallback(() => {
-    if (shapeProps.type === 'kiosk') return { fill: "#2196F3", stroke: "#0D47A1", text: "#FFFFFF" }; 
+    if (shapeProps.type === 'kiosk') return { fill: "#2196F3", stroke: "#0D47A1", text: "#FFFFFF" };
 
     const original = originalElements.find(el => el.id === shapeProps.id);
-    if (!original) return { fill: isDarkMode ? "#064e3b" : "#d4edda", stroke: isDarkMode ? "#065f46" : "#c3e6cb", text: isDarkMode ? "#d1fae5" : "#155724" }; 
+    if (!original) return { fill: isDarkMode ? "#064e3b" : "#d4edda", stroke: isDarkMode ? "#065f46" : "#c3e6cb", text: isDarkMode ? "#d1fae5" : "#155724" };
 
     const posChanged = Math.abs(original.x - shapeProps.x) > 0.1 || Math.abs(original.y - shapeProps.y) > 0.1;
     const sizeChanged = Math.abs(original.width - shapeProps.width) > 0.1 || Math.abs(original.height - shapeProps.height) > 0.1;
 
     if (posChanged || sizeChanged) {
-        return { fill: isDarkMode ? "#3f3f00" : "#fff3cd", stroke: isDarkMode ? "#666600" : "#ffeeba", text: isDarkMode ? "#fff" : "#856404" }; 
+      return { fill: isDarkMode ? "#3f3f00" : "#fff3cd", stroke: isDarkMode ? "#666600" : "#ffeeba", text: isDarkMode ? "#fff" : "#856404" };
     }
 
-    return { fill: isDarkMode ? "#1e293b" : "#f8f9fa", stroke: isDarkMode ? "#334155" : "#ced4da", text: isDarkMode ? "#f8fafc" : "#495057" }; 
+    return { fill: isDarkMode ? "#1e293b" : "#f8f9fa", stroke: isDarkMode ? "#334155" : "#ced4da", text: isDarkMode ? "#f8fafc" : "#495057" };
   }, [shapeProps, originalElements, isDarkMode]);
 
   const visualColors = getVisualColors();
@@ -70,9 +70,9 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
   const renderEndpoints = () => {
     if (shapeProps.type !== 'room') return null;
     const endpoints = shapeProps.endpoints || ['bottom'];
-    const markerLen = 16; 
+    const markerLen = 16;
     const markerThick = 4;
-    
+
     return endpoints.map((side) => {
       let mX, mY, mW, mH;
       if (side === 'top') {
@@ -97,17 +97,17 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
         onDblTap={handleRename}
         ref={shapeRef}
         {...shapeProps}
-        fill={visualColors.fill} 
-        stroke={visualColors.stroke} 
+        fill={visualColors.fill}
+        stroke={visualColors.stroke}
         draggable
-        strokeWidth={isSelected ? 3 : 2} 
+        strokeWidth={isSelected ? 3 : 2}
         perfectDrawEnabled={false}
-        shadowForStrokeEnabled={false} 
+        shadowForStrokeEnabled={false}
         onDragStart={() => setIsDraggingElement(true)}
         onTransformStart={() => setIsDraggingElement(true)}
         dragBoundFunc={(pos) => ({
-            x: Math.round(pos.x / GRID_SIZE) * GRID_SIZE,
-            y: Math.round(pos.y / GRID_SIZE) * GRID_SIZE,
+          x: Math.round(pos.x / GRID_SIZE) * GRID_SIZE,
+          y: Math.round(pos.y / GRID_SIZE) * GRID_SIZE,
         })}
         onDragEnd={(e) => {
           setIsDraggingElement(false);
@@ -141,7 +141,7 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
         height={shapeProps.height}
         fontSize={dynamicFontSize}
         fontStyle="bold"
-        fill={visualColors.text} 
+        fill={visualColors.text}
         align="center"
         verticalAlign="middle"
         padding={5}
@@ -150,13 +150,13 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
         ellipsis={false}
         perfectDrawEnabled={false}
       />
-      
+
       {renderEndpoints()}
 
       {isSelected && (
         <Transformer ref={trRef} rotateEnabled={false} boundBoxFunc={(oldBox, newBox) => {
-            if (newBox.width < GRID_SIZE || newBox.height < GRID_SIZE) return oldBox;
-            return newBox;
+          if (newBox.width < GRID_SIZE || newBox.height < GRID_SIZE) return oldBox;
+          return newBox;
         }} />
       )}
     </React.Fragment>
@@ -168,7 +168,7 @@ export default function EditPage() {
   const [placedElements, setPlacedElements] = useState([]);
   const [mapSize, setMapSize] = useState({ width: 2000, height: 1500 });
   const [originalElements, setOriginalElements] = useState([]);
-  
+
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
 
@@ -177,7 +177,7 @@ export default function EditPage() {
   const [isDraggingElement, setIsDraggingElement] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [deletedElements, setDeletedElements] = useState([]);
-  
+
   const [floors, setFloors] = useState(["Lantai 1"]);
   const [activeEditFloor, setActiveEditFloor] = useState("Lantai 1");
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'id');
@@ -251,7 +251,7 @@ export default function EditPage() {
   const calculatedMapSize = useMemo(() => {
     let maxX = mapSize.width || 2000;
     let maxY = mapSize.height || 1500;
-    
+
     placedElements.forEach(el => {
       if (el.floor === activeEditFloor) {
         const right = el.x + el.width;
@@ -260,7 +260,7 @@ export default function EditPage() {
         if (bottom > maxY) maxY = bottom;
       }
     });
-    
+
     return {
       width: maxX + 1000,
       height: maxY + 1000
@@ -270,11 +270,11 @@ export default function EditPage() {
   const saveHistory = useCallback((newElements) => {
     let newHistory = history.slice(0, historyStep + 1);
     newHistory.push(newElements);
-    
+
     if (newHistory.length > 50) {
-        newHistory = newHistory.slice(newHistory.length - 50);
+      newHistory = newHistory.slice(newHistory.length - 50);
     }
-    
+
     setHistory(newHistory);
     setHistoryStep(newHistory.length - 1);
   }, [history, historyStep]);
@@ -320,13 +320,13 @@ export default function EditPage() {
             height: (data.grid_height || 2) * GRID_SIZE
           });
         });
-        
+
         setPlacedElements(allElements);
-        setOriginalElements(JSON.parse(JSON.stringify(allElements))); 
-        
+        setOriginalElements(JSON.parse(JSON.stringify(allElements)));
+
         setHistory([allElements]);
         setHistoryStep(0);
-        
+
         const sortedFloors = Array.from(uniqueFloors).sort();
         setFloors(sortedFloors);
         setActiveEditFloor(sortedFloors[0] || "Lantai 1");
@@ -340,9 +340,9 @@ export default function EditPage() {
   useEffect(() => {
     const updateMapSize = () => {
       if (mapRef.current) {
-        setMapSize({ 
-          width: mapRef.current.clientWidth || 2000, 
-          height: mapRef.current.clientHeight || 1500 
+        setMapSize({
+          width: mapRef.current.clientWidth || 2000,
+          height: mapRef.current.clientHeight || 1500
         });
       }
     };
@@ -353,19 +353,19 @@ export default function EditPage() {
 
   const handleUndo = useCallback(() => {
     if (historyStep > 0) {
-        const prevStep = historyStep - 1;
-        setHistoryStep(prevStep);
-        setPlacedElements(history[prevStep]);
-        setSelectedId(null); 
+      const prevStep = historyStep - 1;
+      setHistoryStep(prevStep);
+      setPlacedElements(history[prevStep]);
+      setSelectedId(null);
     }
   }, [history, historyStep]);
 
   const handleRedo = useCallback(() => {
     if (historyStep < history.length - 1) {
-        const nextStep = historyStep + 1;
-        setHistoryStep(nextStep);
-        setPlacedElements(history[nextStep]);
-        setSelectedId(null);
+      const nextStep = historyStep + 1;
+      setHistoryStep(nextStep);
+      setPlacedElements(history[nextStep]);
+      setSelectedId(null);
     }
   }, [history, historyStep]);
 
@@ -374,7 +374,7 @@ export default function EditPage() {
       setDeletedElements((prev) => [...prev, selectedId]);
       const newElements = placedElements.filter((el) => el.id !== selectedId);
       setPlacedElements(newElements);
-      saveHistory(newElements); 
+      saveHistory(newElements);
       setSelectedId(null);
     }
   }, [selectedId, placedElements, saveHistory]);
@@ -446,7 +446,7 @@ export default function EditPage() {
       alert("Tidak dapat menghapus. Harus tersisa minimal satu lantai di editor!");
       return;
     }
-    
+
     const confirmDelete = window.confirm(
       `Apakah Anda yakin ingin menghapus "${activeEditFloor}"?\n\nPERHATIAN: Seluruh elemen (Ruangan & Kiosk) yang berada di lantai ini akan terhapus dari database saat Anda menekan tombol Save.`
     );
@@ -458,7 +458,7 @@ export default function EditPage() {
 
       const newElements = placedElements.filter(el => el.floor !== activeEditFloor);
       setPlacedElements(newElements);
-      saveHistory(newElements); 
+      saveHistory(newElements);
 
       const remainingFloors = floors.filter(f => f !== activeEditFloor);
       setFloors(remainingFloors);
@@ -472,12 +472,12 @@ export default function EditPage() {
     const mapRect = mapRef.current.getBoundingClientRect();
     const clientX = e.clientX - mapRect.left;
     const clientY = e.clientY - mapRect.top;
-    
+
     let dragData;
     try {
-        dragData = JSON.parse(e.dataTransfer.getData("text/plain"));
+      dragData = JSON.parse(e.dataTransfer.getData("text/plain"));
     } catch (err) {
-        return; 
+      return;
     }
 
     if (transformRef.current && dragData) {
@@ -493,21 +493,21 @@ export default function EditPage() {
       if (dragData.type === "new-kiosk") {
         newId = generateNextKioskId();
         newElements.push({
-          id: newId, type: 'kiosk', floor: activeEditFloor, 
+          id: newId, type: 'kiosk', floor: activeEditFloor,
           x: snappedX, y: snappedY, width: GRID_SIZE * (dragData.defaultGridWidth || 2), height: GRID_SIZE * (dragData.defaultGridHeight || 2),
-          name: dragData.defaultName, 
+          name: dragData.defaultName,
         });
       } else if (dragData.type === "new-room") {
         newId = generateNextRoomId();
         newElements.push({
           id: newId, type: 'room', floor: activeEditFloor,
           x: snappedX, y: snappedY, width: GRID_SIZE * (dragData.defaultGridWidth || 4), height: GRID_SIZE * (dragData.defaultGridHeight || 2),
-          endpoints: dragData.endpoints, name: dragData.defaultName, 
+          endpoints: dragData.endpoints, name: dragData.defaultName,
         });
       }
-      
+
       setPlacedElements(newElements);
-      saveHistory(newElements); 
+      saveHistory(newElements);
       setSelectedId(newId);
     }
   };
@@ -527,7 +527,7 @@ export default function EditPage() {
           batch.set(doc(db, col, el.id.toString()), {
             id: el.id.toString(),
             name: el.name,
-            floor: el.floor, 
+            floor: el.floor,
             grid_x: Math.round(el.x / GRID_SIZE),
             grid_y: Math.round(el.y / GRID_SIZE),
             grid_width: Math.round(el.width / GRID_SIZE),
@@ -559,33 +559,36 @@ export default function EditPage() {
     <div className="edit-page-container">
       <header className="edit-page-header">
         <span className="edit-page-logo">Wayfinder - {getText('edit_mode')}</span>
-          <button 
-            onClick={toggleTheme} 
+
+        <div className="header-actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <button
+            onClick={toggleTheme}
             className="theme-toggle"
             title={isDarkMode ? (language === 'id' ? 'Mode Terang' : 'Light Mode') : (language === 'id' ? 'Mode Gelap' : 'Dark Mode')}
-            style={{background: "transparent", border: "1px solid var(--border)", color: "var(--white)", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", marginLeft: "15px"}}
+            style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--white)", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
           >
             {isDarkMode ? "☀️" : "🌙"}
           </button>
-        <button 
-          onClick={toggleLanguage} 
-          style={{background: "transparent", border: "1px solid var(--border)", color: "var(--white)", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", marginLeft: "15px"}}
-        >
-          {language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}
-        </button>
-        {activeEditFloor.startsWith("submap_") && (
-            <button 
-                onClick={() => {
-                    const parentRoomId = activeEditFloor.replace("submap_", "");
-                    const parentRoom = placedElements.find(el => el.id === parentRoomId);
-                    setActiveEditFloor(parentRoom ? parentRoom.floor : floors[0]);
-                }}
-                style={{ padding: "8px 15px", background: "#1A73C8", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", marginLeft: "20px" }}
+          <button
+            onClick={toggleLanguage}
+            style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--white)", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
+          >
+            {language === 'id' ? '🇮🇩 ID' : '🇬🇧 EN'}
+          </button>
+
+          {activeEditFloor.startsWith("submap_") && (
+            <button
+              onClick={() => {
+                const parentRoomId = activeEditFloor.replace("submap_", "");
+                const parentRoom = placedElements.find(el => el.id === parentRoomId);
+                setActiveEditFloor(parentRoom ? parentRoom.floor : floors[0]);
+              }}
+              style={{ padding: "8px 15px", background: "transparent", color: "white", border: "1px solid rgba(255,255,255,0.3)", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
             >
-                <span>{getText('back_to_main_floor')}</span>
+              <span>{getText('back_to_main_floor')}</span>
             </button>
-        )}
-        <div className="edit-page-actions">
+          )}
+
           <button className="edit-page-btn cancel" onClick={() => setIsConfirmOpen(true)}><span>{getText('cancel')}</span></button>
           <button className="edit-page-btn save" onClick={() => { setConfirmAction("save"); setIsConfirmOpen(true); }}><span>{getText('save_map')}</span></button>
         </div>
@@ -630,29 +633,29 @@ export default function EditPage() {
                   <Layer>
                     <Rect id="bg-grid" x={0} y={0} width={calculatedMapSize.width} height={calculatedMapSize.height} fill="transparent" />
                     {drawGrid()}
-                    
+
                     {placedElements
                       .filter(el => el.floor === activeEditFloor)
                       .map((rect, i) => (
                         <ElementShape
-                            key={rect.id}
-                            shapeProps={rect}
-                            isSelected={rect.id === selectedId}
-                            setIsDraggingElement={setIsDraggingElement}
-                            GRID_SIZE={GRID_SIZE}
-                            onSelect={() => setSelectedId(rect.id)}
-                            onChange={(newAttrs) => {
-                                const index = placedElements.findIndex(e => e.id === rect.id);
-                                const newElements = [...placedElements];
-                                newElements[index] = newAttrs;
-                                setPlacedElements(newElements);
-                                saveHistory(newElements); 
-                            }}
-                            originalElements={originalElements} 
-                            language={language}
-                            isDarkMode={isDarkMode}
+                          key={rect.id}
+                          shapeProps={rect}
+                          isSelected={rect.id === selectedId}
+                          setIsDraggingElement={setIsDraggingElement}
+                          GRID_SIZE={GRID_SIZE}
+                          onSelect={() => setSelectedId(rect.id)}
+                          onChange={(newAttrs) => {
+                            const index = placedElements.findIndex(e => e.id === rect.id);
+                            const newElements = [...placedElements];
+                            newElements[index] = newAttrs;
+                            setPlacedElements(newElements);
+                            saveHistory(newElements);
+                          }}
+                          originalElements={originalElements}
+                          language={language}
+                          isDarkMode={isDarkMode}
                         />
-                    ))}
+                      ))}
                   </Layer>
                 </Stage>
               </div>
@@ -666,8 +669,8 @@ export default function EditPage() {
               <span>🏢 {getText('floor_management')}</span>
               <span style={{ fontSize: "10px", background: "var(--bg)", padding: "2px 6px", borderRadius: "10px", color: "var(--blue-dark)" }}>{floors.length} {getText('floors_count')}</span>
             </h4>
-            <select 
-              value={activeEditFloor} 
+            <select
+              value={activeEditFloor}
               onChange={(e) => {
                 setActiveEditFloor(e.target.value);
                 setSelectedId(null);
@@ -684,31 +687,31 @@ export default function EditPage() {
           </div>
 
           <div style={{ display: "flex", gap: "6px", marginBottom: "15px" }}>
-              <button 
-                  onClick={handleUndo}
-                  disabled={historyStep <= 0}
-                  style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep <= 0 ? (isDarkMode ? "#334155" : "#f1f3f5") : "var(--white)", color: historyStep <= 0 ? (isDarkMode ? "#64748b" : "#adb5bd") : "var(--text-main)", border: "1px solid var(--border)", borderRadius: "4px", cursor: historyStep <= 0 ? "not-allowed" : "pointer", fontWeight: "bold" }}
-                  title="Undo (Ctrl+Z)"
-              >
-                  ↶ {getText('undo')}
-              </button>
-              <button 
-                  onClick={handleRedo}
-                  disabled={historyStep >= history.length - 1}
-                  style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep >= history.length - 1 ? (isDarkMode ? "#334155" : "#f1f3f5") : "var(--white)", color: historyStep >= history.length - 1 ? (isDarkMode ? "#64748b" : "#adb5bd") : "var(--text-main)", border: "1px solid var(--border)", borderRadius: "4px", cursor: historyStep >= history.length - 1 ? "not-allowed" : "pointer", fontWeight: "bold" }}
-                  title="Redo (Ctrl+Y)"
-              >
-                  {getText('redo')} ↷
-              </button>
+            <button
+              onClick={handleUndo}
+              disabled={historyStep <= 0}
+              style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep <= 0 ? (isDarkMode ? "#334155" : "#f1f3f5") : "var(--white)", color: historyStep <= 0 ? (isDarkMode ? "#64748b" : "#adb5bd") : "var(--text-main)", border: "1px solid var(--border)", borderRadius: "4px", cursor: historyStep <= 0 ? "not-allowed" : "pointer", fontWeight: "bold" }}
+              title="Undo (Ctrl+Z)"
+            >
+              ↶ {getText('undo')}
+            </button>
+            <button
+              onClick={handleRedo}
+              disabled={historyStep >= history.length - 1}
+              style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep >= history.length - 1 ? (isDarkMode ? "#334155" : "#f1f3f5") : "var(--white)", color: historyStep >= history.length - 1 ? (isDarkMode ? "#64748b" : "#adb5bd") : "var(--text-main)", border: "1px solid var(--border)", borderRadius: "4px", cursor: historyStep >= history.length - 1 ? "not-allowed" : "pointer", fontWeight: "bold" }}
+              title="Redo (Ctrl+Y)"
+            >
+              {getText('redo')} ↷
+            </button>
           </div>
 
           <h3>{getText('edit_panel')} - {translateName(activeEditFloor, language)}</h3>
           <div className="edit-tools">
-            <p style={{fontSize: "12px", color: "var(--text-muted)"}}>
-              {selectedId ? `${getText('selected')}: ${translateName(placedElements.find(el=>el.id === selectedId)?.name || "Kiosk", language)}` : getText('no_element_selected')}
+            <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+              {selectedId ? `${getText('selected')}: ${translateName(placedElements.find(el => el.id === selectedId)?.name || "Kiosk", language)}` : getText('no_element_selected')}
             </p>
-            <button 
-              className="edit-page-btn delete" 
+            <button
+              className="edit-page-btn delete"
               onClick={deleteSelectedElement}
               disabled={!selectedId}
               style={{
@@ -718,76 +721,76 @@ export default function EditPage() {
             >
               {getText('del_element')}
             </button>
-            
+
             {selectedId && placedElements.find(el => el.id === selectedId)?.type === 'room' && (() => {
-               const room = placedElements.find(el => el.id === selectedId);
-               const updateRoom = (changes) => {
-                   const newElements = placedElements.map(el => el.id === selectedId ? { ...el, ...changes } : el);
-                   setPlacedElements(newElements);
-                   saveHistory(newElements); 
-               };
-               return (
-                   <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                       <button 
-                           onClick={() => {
-                               const submapId = `submap_${room.id}`;
-                               setActiveEditFloor(submapId);
-                               setSelectedId(null);
-                               
-                               const hasPintuMasuk = placedElements.some(el => el.floor === submapId && el.name.toLowerCase() === 'pintu masuk');
-                               if (!hasPintuMasuk) {
-                                   const newId = generateNextKioskId();
-                                   const newElements = [...placedElements, {
-                                       id: newId, type: 'kiosk',
-                                       floor: submapId,
-                                       x: 200, y: 200,
-                                       width: GRID_SIZE * 2, height: GRID_SIZE * 2,
-                                       name: "Pintu Masuk", fill: "#FF9800", stroke: "#E65100"
-                                   }];
-                                   setPlacedElements(newElements);
-                                   saveHistory(newElements);
-                               }
-                           }}
-                           style={{ width: "100%", padding: "10px", backgroundColor: "#2196F3", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
-                       >
-                           {getText('enter_submap')}
-                       </button>
-                       
-                       <div className="endpoint-controls" style={{background: isDarkMode ? "#334155" : "#f9f9f9", padding: "10px", borderRadius: "5px", border: "1px solid var(--border)"}}>
-                       <h4 style={{margin: "0 0 10px 0", fontSize: "14px", color: "#B71C1C"}}>{getText('active_endpoint_side')}</h4>
-                       <p style={{fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px"}}>{getText('change_manual_hint')}</p>
-                       <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", background: "var(--bg)", padding: "8px", borderRadius: "4px", border: "1px solid var(--border)"}}>
-                           {['top', 'bottom', 'left', 'right'].map(side => {
-                               const labels = {top: getText('top'), bottom: getText('bottom'), left: getText('left'), right: getText('right')};
-                               const isChecked = (room.endpoints || []).includes(side);
-                               return (
-                                   <label key={side} style={{fontSize: "12px", display: "flex", alignItems: "center", gap: "5px", cursor: "pointer"}}>
-                                       <input 
-                                           type="checkbox" 
-                                           checked={isChecked}
-                                           onChange={() => {
-                                               const curr = room.endpoints || [];
-                                               const next = isChecked ? curr.filter(s => s !== side) : [...curr, side];
-                                               updateRoom({ endpoints: next.length > 0 ? next : ['bottom'] });
-                                           }}
-                                       />
-                                       {labels[side]}
-                                   </label>
-                               );
-                           })}
-                       </div>
-                        </div>
-                   </div>
-               );
+              const room = placedElements.find(el => el.id === selectedId);
+              const updateRoom = (changes) => {
+                const newElements = placedElements.map(el => el.id === selectedId ? { ...el, ...changes } : el);
+                setPlacedElements(newElements);
+                saveHistory(newElements);
+              };
+              return (
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                  <button
+                    onClick={() => {
+                      const submapId = `submap_${room.id}`;
+                      setActiveEditFloor(submapId);
+                      setSelectedId(null);
+
+                      const hasPintuMasuk = placedElements.some(el => el.floor === submapId && el.name.toLowerCase() === 'pintu masuk');
+                      if (!hasPintuMasuk) {
+                        const newId = generateNextKioskId();
+                        const newElements = [...placedElements, {
+                          id: newId, type: 'kiosk',
+                          floor: submapId,
+                          x: 200, y: 200,
+                          width: GRID_SIZE * 2, height: GRID_SIZE * 2,
+                          name: "Pintu Masuk", fill: "#FF9800", stroke: "#E65100"
+                        }];
+                        setPlacedElements(newElements);
+                        saveHistory(newElements);
+                      }
+                    }}
+                    style={{ width: "100%", padding: "10px", backgroundColor: "#2196F3", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
+                  >
+                    {getText('enter_submap')}
+                  </button>
+
+                  <div className="endpoint-controls" style={{ background: isDarkMode ? "#334155" : "#f9f9f9", padding: "10px", borderRadius: "5px", border: "1px solid var(--border)" }}>
+                    <h4 style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#B71C1C" }}>{getText('active_endpoint_side')}</h4>
+                    <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px" }}>{getText('change_manual_hint')}</p>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", background: "var(--bg)", padding: "8px", borderRadius: "4px", border: "1px solid var(--border)" }}>
+                      {['top', 'bottom', 'left', 'right'].map(side => {
+                        const labels = { top: getText('top'), bottom: getText('bottom'), left: getText('left'), right: getText('right') };
+                        const isChecked = (room.endpoints || []).includes(side);
+                        return (
+                          <label key={side} style={{ fontSize: "12px", display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              onChange={() => {
+                                const curr = room.endpoints || [];
+                                const next = isChecked ? curr.filter(s => s !== side) : [...curr, side];
+                                updateRoom({ endpoints: next.length > 0 ? next : ['bottom'] });
+                              }}
+                            />
+                            {labels[side]}
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              );
             })()}
           </div>
 
-          <hr style={{margin: "20px 0", border: "0.5px solid var(--border)"}} />
+          <hr style={{ margin: "20px 0", border: "0.5px solid var(--border)" }} />
 
           <h3>{getText('template_elements')}</h3>
-          <p style={{fontSize: "11px", color: "var(--text-muted)", marginTop: "-5px", marginBottom: "15px"}}>{getText('template_hint')}</p>
-          
-          <div className="dnd-zone" style={{display: "flex", flexDirection: "column", gap: "10px"}}>
+          <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "-5px", marginBottom: "15px" }}>{getText('template_hint')}</p>
+
+          <div className="dnd-zone" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
             {[
               { name: "Ruangan Pintu Berlawanan", endpoints: ['left', 'right'], color: "#4caf50" },
               { name: "Ruangan 1 Pintu", endpoints: ['top'], color: "#4caf50" },
@@ -795,9 +798,9 @@ export default function EditPage() {
               { name: "Ruangan 3 Pintu", endpoints: ['left', 'right', 'bottom'], color: "#4caf50" },
               { name: "Ruangan 4 Pintu", endpoints: ['top', 'bottom', 'left', 'right'], color: "#4caf50" }
             ].map(preset => (
-              <div 
+              <div
                 key={preset.name}
-                draggable 
+                draggable
                 onDragStart={(e) => {
                   e.dataTransfer.setData("text/plain", JSON.stringify({
                     type: "new-room",
@@ -806,7 +809,7 @@ export default function EditPage() {
                     defaultGridWidth: 4,
                     defaultGridHeight: 4
                   }));
-                }} 
+                }}
                 onClick={() => {
                   const newId = generateNextRoomId();
                   const newElements = [...placedElements, {
@@ -818,9 +821,9 @@ export default function EditPage() {
                   setPlacedElements(newElements);
                   saveHistory(newElements);
                 }}
-                style={{ 
+                style={{
                   width: "100%", height: "40px", background: preset.color, border: "1px solid #1b5e20",
-                  cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "4px" 
+                  cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "4px"
                 }}
               >
                 <p style={{ color: "#1b5e20", padding: "5px", fontSize: "11px", textAlign: "center", fontWeight: "bold" }}>
@@ -829,10 +832,10 @@ export default function EditPage() {
               </div>
             ))}
 
-            <div style={{margin: "10px 0", borderTop: "1px solid var(--border)"}}></div>
+            <div style={{ margin: "10px 0", borderTop: "1px solid var(--border)" }}></div>
 
-            <div 
-              draggable 
+            <div
+              draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData("text/plain", JSON.stringify({
                   type: "new-kiosk",
@@ -840,7 +843,7 @@ export default function EditPage() {
                   defaultGridWidth: 2,
                   defaultGridHeight: 2
                 }));
-              }} 
+              }}
               onClick={() => {
                 const newId = generateNextKioskId();
                 const newElements = [...placedElements, {
@@ -851,9 +854,9 @@ export default function EditPage() {
                 setPlacedElements(newElements);
                 saveHistory(newElements);
               }}
-              style={{ 
+              style={{
                 width: GRID_SIZE * 2, height: GRID_SIZE * 2, background: "#2196F3", border: "1px solid #0D47A1",
-                cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" 
+                cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto"
               }}
             >
               <p style={{ color: "white", padding: "2px", fontSize: "10px", textAlign: "center", fontWeight: "bold" }}>

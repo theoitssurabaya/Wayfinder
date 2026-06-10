@@ -16,19 +16,25 @@ NLP_CACHE = {}
 
 # Pengetahuan dasar asisten agar lebih pintar
 KAMUS_SINONIM = {
-    "ugd": "igd", "emergency": "igd", "darurat": "igd", "kecelakaan": "igd", "sekarat": "igd", "luka": "igd",
-    "wc": "toilet", "kamar mandi": "toilet", "kencing": "toilet", "berak": "toilet", "buang air": "toilet", "pipis": "toilet", "pup": "toilet", "bab": "toilet", "bak": "toilet",
-    "bayar": "kasir", "uang": "kasir", "pembayaran": "kasir", "tagihan": "kasir", "lunasi": "kasir", "administrasi": "kasir",
-    "obat": "farmasi", "apotek": "farmasi", "apotik": "farmasi", "resep": "farmasi", "tebus": "farmasi",
-    "rontgen": "radiologi", "xray": "radiologi", "scan": "radiologi", "mri": "radiologi", "usg": "radiologi", "ct": "radiologi",
-    "kandungan": "poli", "gigi": "poli", "mata": "poli", "periksa": "poli", "dokter": "poli", "konsultasi": "poli", "kontrol": "poli", "pusing": "poli", "sakit": "poli", "demam": "poli", "berobat": "poli",
+    "ugd": "igd", "emergency": "igd", "darurat": "igd", "kecelakaan": "igd", "sekarat": "igd", "luka": "igd", "pendarahan": "igd", "kritis": "igd", "parah": "igd",
+    "wc": "toilet", "kamar mandi": "toilet", "kencing": "toilet", "berak": "toilet", "buang air": "toilet", "pipis": "toilet", "pup": "toilet", "bab": "toilet", "bak": "toilet", "restroom": "toilet", "washroom": "toilet",
+    "bayar": "kasir", "uang": "kasir", "pembayaran": "kasir", "tagihan": "kasir", "lunasi": "kasir", "administrasi": "kasir", "payment": "kasir", "bill": "kasir", "cashier": "kasir",
+    "obat": "farmasi", "apotek": "farmasi", "apotik": "farmasi", "resep": "farmasi", "tebus": "farmasi", "pharmacy": "farmasi", "medicine": "farmasi",
+    "rontgen": "radiologi", "xray": "radiologi", "scan": "radiologi", "mri": "radiologi", "usg": "radiologi", "ct": "radiologi", "radiology": "radiologi",
+    "kandungan": "poli kandungan", "hamil": "poli kandungan", "melahirkan": "poli kandungan", "bayi": "poli anak", "anak": "poli anak",
+    "gigi": "poli gigi", "cabut gigi": "poli gigi", "tambal gigi": "poli gigi",
+    "mata": "poli mata", "kacamata": "poli mata", "rabun": "poli mata",
+    "periksa": "poli", "dokter": "poli", "konsultasi": "poli", "kontrol": "poli", "pusing": "poli", "sakit": "poli", "demam": "poli", "berobat": "poli", "check up": "poli",
     "sholat": "mushola", "salat": "mushola", "masjid": "mushola", "ibadah": "mushola", "sembahyang": "mushola", "prayer": "mushola", "mosque": "mushola", "berdoa": "mushola", "musholla": "mushola", "musala": "mushola",
     "makan": "kantin", "minum": "kantin", "lapar": "kantin", "haus": "kantin", "jajan": "kantin", "eat": "kantin", "drink": "kantin", "food": "kantin", "canteen": "kantin", "cafeteria": "kantin", "ngopi": "kantin", "sarapan": "kantin",
-    "menginap": "rawat inap", "besuk": "rawat inap", "jenguk": "rawat inap", "opname": "rawat inap", "bangsal": "rawat inap", "inpatient": "rawat inap", "ward": "rawat inap", "visit": "rawat inap",
+    "menginap": "rawat inap", "besuk": "rawat inap", "jenguk": "rawat inap", "opname": "rawat inap", "bangsal": "rawat inap", "inpatient": "rawat inap", "ward": "rawat inap", "visit": "rawat inap", "kamar": "rawat inap",
     "checkup": "mcu", "cek kesehatan": "mcu", "medical check up": "mcu",
-    "operasi": "bedah", "kritis": "icu", "meninggal": "kamar jenazah", "mati": "kamar jenazah", "hamil": "kandungan", "melahirkan": "kandungan",
-    "doctor": "poli", "clinic": "poli",
-    "room": "ruang", "door": "pintu", "stairs": "tangga"
+    "operasi": "bedah", "meninggal": "kamar jenazah", "mati": "kamar jenazah", "jenazah": "kamar jenazah", "mayat": "kamar jenazah", "morgue": "kamar jenazah",
+    "doctor": "poli", "clinic": "poli", "poliklinik": "poli",
+    "room": "ruang", "door": "pintu", "stairs": "tangga",
+    "daftar": "pendaftaran", "antri": "pendaftaran", "registrasi": "pendaftaran", "loket": "pendaftaran", "nomor": "pendaftaran", "antrian": "pendaftaran", "registration": "pendaftaran",
+    "parkir": "parkiran", "motor": "parkiran", "mobil": "parkiran", "kendaraan": "parkiran", "parking": "parkiran",
+    "darah": "laboratorium", "lab": "laboratorium", "tes": "laboratorium", "test": "laboratorium", "sampel": "laboratorium"
 }
 
 # Fungsi pembersihan teks untuk NLP
@@ -44,8 +50,8 @@ def bersihkan_teks(teks_kotor):
     # Kata tugas yang tidak relevan (ID & EN)
     stopwords = [
         "mau", "ke", "di", "mana", "tolong", "antar", "cari", "ruang", "tempat", "saya", "ingin", "tanya", "mas", "mbak", "kasih", "tau", "arah", "jalan", "buat", "ambil",
-        "tunjukkan", "bantuin", "dong", "aku", "nyari", "gimana", "caranya", "menuju", "cara", "pergi", "bisa", "tolongin", "dong",
-        "want", "to", "go", "where", "please", "take", "me", "find", "room", "place", "i", "ask", "show", "way", "direction", "get", "looking", "for", "how", "can"
+        "tunjukkan", "bantuin", "dong", "aku", "nyari", "gimana", "caranya", "menuju", "cara", "pergi", "bisa", "tolongin", "dong", "pak", "bu", "sus", "suster", "dokter", "letak", "letaknya", "ada",
+        "want", "to", "go", "where", "please", "take", "me", "find", "room", "place", "i", "ask", "show", "way", "direction", "get", "looking", "for", "how", "can", "is", "the", "a", "an"
     ]
     kata_akhir = [kata for kata in teks.split() if kata not in stopwords]
     
@@ -83,23 +89,59 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id"):
 
     input_bersih = bersihkan_teks(input_pengunjung)
 
-    # EXACT MATCH CHECK
+    # EXACT & WORD INTERSECTION MATCH CHECK
     exact_matches = []
     input_lower = input_pengunjung.lower().strip()
+    input_words = set(input_bersih.split())
+    
+    kumpulan_kata_kunci = []
+    mapping_kunci_ke_id = {}
+
     for r_id, room in waypoint_graph.RUANGAN_GRID.items():
         room_name_lower = room.get("name", "").lower().strip()
         room_keywords = [k.lower().strip() for k in room.get("keywords", [])]
         
-        # 1. Match Exact ID or Exact Name
-        if input_lower == room_name_lower or input_pengunjung == r_id or input_bersih == room_name_lower:
-            exact_matches.append(r_id)
-        # 2. Match Exact Keyword
-        elif input_lower in room_keywords or input_bersih in room_keywords:
-            exact_matches.append(r_id)
-        # 3. Match Exact Acronym in parenthesis (e.g., "(igd)")
-        elif f"({input_lower})" in room_name_lower or f"({input_bersih})" in room_name_lower:
+        # 1. Match Exact ID or Exact Name (Raw)
+        if input_lower == room_name_lower or input_pengunjung == r_id:
             exact_matches.append(r_id)
             
+        # Bersihkan nama ruangan dan keywords agar sinonimnya terseragamkan (misal: darurat -> igd)
+        clean_room_name = bersihkan_teks(room_name_lower)
+        clean_keywords = [bersihkan_teks(k) for k in room_keywords]
+        
+        semua_teks_bersih = [clean_room_name] + clean_keywords
+        room_words = set()
+        for teks_bersih in semua_teks_bersih:
+            if teks_bersih:
+                kumpulan_kata_kunci.append(teks_bersih)
+                if teks_bersih not in mapping_kunci_ke_id:
+                    mapping_kunci_ke_id[teks_bersih] = []
+                mapping_kunci_ke_id[teks_bersih].append(r_id)
+                room_words.update(teks_bersih.split())
+                
+                # Substring utuh (misal input "igd" dan nama ruangan "instalasi igd")
+                if input_bersih and input_bersih in teks_bersih:
+                    if r_id not in exact_matches:
+                        exact_matches.append(r_id)
+        
+        # 2. Word Intersection (Irisan Kata Baku)
+        # Jika ada kata baku yang sama persis (misal sama-sama memiliki kata "igd" atau "pendaftaran")
+        # Abaikan jika kata irisannya terlalu umum (kurang dari 3 huruf)
+        irisan = input_words.intersection(room_words)
+        irisan_valid = [w for w in irisan if len(w) >= 3]
+        if irisan_valid:
+            if r_id not in exact_matches:
+                exact_matches.append(r_id)
+
+    # 3. Fuzzy Typo Match (Jika irisan dan substring gagal)
+    if not exact_matches and input_bersih:
+        typo_matches = difflib.get_close_matches(input_bersih, kumpulan_kata_kunci, n=1, cutoff=0.80)
+        if not typo_matches:
+            typo_matches = difflib.get_close_matches(input_lower, kumpulan_kata_kunci, n=1, cutoff=0.80)
+            
+        if typo_matches:
+            exact_matches = mapping_kunci_ke_id.get(typo_matches[0], [])
+
     if exact_matches:
         if len(exact_matches) == 1:
             return {"status": "success", "target_id": exact_matches[0], "confidence_score": 1.0}
@@ -162,7 +204,7 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id"):
     max_score = np.max(skor_kemiripan)
     terbaik_id = None
     
-    if max_score >= 0.40:
+    if max_score >= 0.35:
         kandidat_indeks = np.where(skor_kemiripan >= max_score - 0.01)[0]
         
         if len(kandidat_indeks) == 1:
