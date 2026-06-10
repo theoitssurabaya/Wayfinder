@@ -92,6 +92,7 @@ export default function App() {
   const [serverIp, setServerIp] = useState("");
   const [customQrHost, setCustomQrHost] = useState("");
   const [isListening, setIsListening] = useState(false);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
 
   useEffect(() => {
     document.body.classList.toggle("dark-mode", isDarkMode);
@@ -188,6 +189,10 @@ export default function App() {
     const newLang = language === 'id' ? 'en' : 'id';
     setLanguage(newLang);
     localStorage.setItem('language', newLang);
+
+    if (navigationSteps.length > 0 && !isNavFinished) {
+      executeSearch(location, search, newLang, activeStepIndex >= 0 ? activeStepIndex : 0);
+    }
   };
 
   // ── FITUR LOCK DEVICE & MOBILE HANDOFF ──
@@ -200,8 +205,13 @@ export default function App() {
     const start = params.get("start");
     const end = params.get("end");
     const mobile = params.get("mobile");
+    const expires = params.get("expires");
 
     if (mobile === "true" && start && end) {
+      if (expires && Date.now() > parseInt(expires, 10)) {
+        setIsSessionExpired(true);
+        return;
+      }
       setIsMobileMode(true);
       setLocation(start);
       setSearch(end);
@@ -338,7 +348,7 @@ export default function App() {
     };
   }, []);
 
-  const speakSteps = (langkahNavigasi) => {
+  const speakSteps = (langkahNavigasi, startIndex = 0, currentLang = language) => {
     if ('speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       window.utterances = []; // HACK: Mencegah Garbage Collection di browser Mobile
@@ -351,7 +361,7 @@ export default function App() {
         const utterance = new SpeechSynthesisUtterance(step.teks);
         window.utterances.push(utterance);
 
-        utterance.lang = language === 'en' ? 'en-US' : 'id-ID';
+        utterance.lang = currentLang === 'en' ? 'en-US' : 'id-ID';
         utterance.rate = 1.15;
 
         utterance.onstart = () => {
@@ -398,13 +408,14 @@ export default function App() {
         window.speechSynthesis.speak(utterance);
       };
 
-      playNext(0);
+      playNext(startIndex);
     }
   };
 
-  const executeSearch = async (overrideLocation, overrideTarget) => {
+  const executeSearch = async (overrideLocation, overrideTarget, overrideLang, resumeStepIndex = 0) => {
     const searchLocation = typeof overrideLocation === 'string' ? overrideLocation : location;
     const searchTarget = typeof overrideTarget === 'string' ? overrideTarget : search;
+    const currentLang = overrideLang || language;
 
     if (!searchTarget.trim()) return;
 
@@ -435,7 +446,7 @@ export default function App() {
         body: JSON.stringify({
           start_node_id: searchLocation,
           teks_pencarian: searchTarget.trim(),
-          language: language
+          language: currentLang
         })
       });
 
@@ -462,7 +473,7 @@ export default function App() {
         setSearch(data.data_target.nama_ruangan); // Update dropdown to show the matched NLP room
         setPathData(data.jalur_koordinat);
         setNavigationSteps(data.langkah_navigasi);
-        setActiveStepIndex(0);
+        setActiveStepIndex(resumeStepIndex);
 
         let allText = getText('no_nav_text');
         if (data.langkah_navigasi && data.langkah_navigasi.length > 0) {
@@ -474,7 +485,7 @@ export default function App() {
           if (isMob) {
             if (data.langkah_navigasi[0].floor) setFloor(data.langkah_navigasi[0].floor);
           } else {
-            speakSteps(data.langkah_navigasi);
+            speakSteps(data.langkah_navigasi, resumeStepIndex, currentLang);
           }
         } else {
           const fallbackText = `${getText('route_found')} ${getText('towards')} ${roomName}`;
@@ -529,6 +540,17 @@ export default function App() {
       setTimeout(() => setIsShaking(false), 500);
     }
   };
+
+  if (isSessionExpired) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)', color: 'var(--text-main)', textAlign: 'center', padding: '20px' }}>
+        <h1 style={{ fontSize: '24px', color: '#e74c3c' }}>Sesi Navigasi Berakhir</h1>
+        <p style={{ marginTop: '10px', fontSize: '16px', maxWidth: '400px', lineHeight: '1.5' }}>
+          Tautan rute ini sudah kedaluwarsa. Silakan pindai ulang QR Code dari Kiosk terdekat jika Anda membutuhkan panduan lagi.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -644,7 +666,8 @@ export default function App() {
                 value={(() => {
                   const host = customQrHost || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? serverIp : window.location.hostname);
                   const port = window.location.port ? `:${window.location.port}` : "";
-                  return `${window.location.protocol}//${host}${port}/?start=${encodeURIComponent(location)}&end=${encodeURIComponent(search)}&mobile=true`;
+                  const expires = Date.now() + 30 * 60 * 1000;
+                  return `${window.location.protocol}//${host}${port}/?start=${encodeURIComponent(location)}&end=${encodeURIComponent(search)}&mobile=true&expires=${expires}`;
                 })()}
                 size={200}
               />
@@ -896,13 +919,51 @@ export default function App() {
             </button>
           )}
 
+          {navigationSteps.length > 0 && (
+            <button
+              onClick={() => {
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                setPathData([]);
+                setNavigationSteps([]);
+                setActiveStepIndex(-1);
+                setTargetRoomName("");
+                setOutputText("");
+                setIsNavFinished(false);
+                setSearch("");
+              }}
+              style={{ 
+                marginTop: "10px", 
+                width: "100%", 
+                padding: "12px", 
+                background: isDarkMode ? "rgba(239, 68, 68, 0.15)" : "#e74c3c", 
+                color: isDarkMode ? "#ef4444" : "white", 
+                border: isDarkMode ? "1px solid rgba(239, 68, 68, 0.3)" : "none", 
+                borderRadius: "8px", 
+                cursor: "pointer", 
+                fontWeight: "bold",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: "8px"
+              }}
+            >
+              <span>🛑</span> {language === 'id' ? 'Hentikan Navigasi' : 'Stop Navigation'}
+            </button>
+          )}
+
         </aside>
 
         <main className="map-panel" style={{ position: "relative" }}>
           
           {/* VERTICAL FLOOR SCRUBBER (OPTION 1) */}
           <div className="vertical-scrubber-wrapper">
-            {floors.filter(f => !f.startsWith("submap_")).reverse().map((f) => {
+            {floors.filter(f => {
+              if (f.startsWith("submap_")) return false;
+              if (isMobileMode && navigationSteps.length > 0) {
+                return navigationSteps.some(step => step.floor === f);
+              }
+              return true;
+            }).reverse().map((f) => {
               const isActive = (() => {
                 if (floor.startsWith("submap_")) {
                   const parentId = floor.replace("submap_", "");
