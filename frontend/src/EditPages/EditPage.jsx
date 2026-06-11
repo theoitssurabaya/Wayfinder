@@ -720,7 +720,7 @@ export default function EditPage() {
               onClick={deleteSelectedElement}
               disabled={!selectedId}
               style={{
-                width: "100%", padding: "10px", backgroundColor: selectedId ? "#f44336" : "#ccc",
+                width: "100%", padding: "10px", backgroundColor: selectedId ? "#f44336" : (isDarkMode ? "#334155" : "#ccc"),
                 color: "white", border: "none", borderRadius: "5px", cursor: selectedId ? "pointer" : "not-allowed", marginTop: "10px"
               }}
             >

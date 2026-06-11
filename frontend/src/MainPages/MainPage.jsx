@@ -875,7 +875,7 @@ export default function App() {
                           if (navigationSteps[newIdx]?.floor) setFloor(navigationSteps[newIdx].floor);
                         }}
                         disabled={activeStepIndex === 0}
-                        style={{ padding: '8px 15px', borderRadius: '8px', border: 'none', background: activeStepIndex === 0 ? '#ccc' : 'var(--blue-primary)', color: 'white', fontWeight: 'bold' }}
+                        style={{ padding: '8px 15px', borderRadius: '8px', border: 'none', background: activeStepIndex === 0 ? (isDarkMode ? '#334155' : '#ccc') : 'var(--blue-primary)', color: 'white', fontWeight: 'bold' }}
                       >
                         {language === 'en' ? 'Prev' : 'Mundur'}
                       </button>
@@ -889,7 +889,7 @@ export default function App() {
                           if (navigationSteps[newIdx]?.floor) setFloor(navigationSteps[newIdx].floor);
                         }}
                         disabled={activeStepIndex === navigationSteps.length - 1}
-                        style={{ padding: '8px 15px', borderRadius: '8px', border: 'none', background: activeStepIndex === navigationSteps.length - 1 ? '#ccc' : 'var(--blue-primary)', color: 'white', fontWeight: 'bold' }}
+                        style={{ padding: '8px 15px', borderRadius: '8px', border: 'none', background: activeStepIndex === navigationSteps.length - 1 ? (isDarkMode ? '#334155' : '#ccc') : 'var(--blue-primary)', color: 'white', fontWeight: 'bold' }}
                       >
                         {language === 'en' ? 'Next' : 'Maju'}
                       </button>
@@ -903,7 +903,7 @@ export default function App() {
           )}
 
           {isNavFinished && (
-            <div style={{ position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)", zIndex: 9999, padding: "12px 24px", background: "#fff3cd", color: "#856404", borderRadius: "8px", fontSize: "16px", fontWeight: "bold", textAlign: "center", border: "1px solid #ffeeba", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
+            <div style={{ position: "fixed", top: "20px", left: "50%", transform: "translateX(-50%)", zIndex: 9999, padding: "12px 24px", background: isDarkMode ? "rgba(234, 179, 8, 0.2)" : "#fff3cd", color: isDarkMode ? "#fde047" : "#856404", borderRadius: "8px", fontSize: "16px", fontWeight: "bold", textAlign: "center", border: isDarkMode ? "1px solid rgba(234, 179, 8, 0.4)" : "1px solid #ffeeba", boxShadow: "0 4px 12px rgba(0,0,0,0.15)" }}>
               {language === 'en'
                 ? `Navigation complete. The screen will reset in ${countdownValue} seconds.`
                 : `Navigasi selesai. Layar akan di-reset dalam ${countdownValue} detik.`}
@@ -924,6 +924,8 @@ export default function App() {
             <button
               onClick={() => {
                 if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+                if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                if (resetTimeoutRef.current) clearTimeout(resetTimeoutRef.current);
                 setPathData([]);
                 setNavigationSteps([]);
                 setActiveStepIndex(-1);
