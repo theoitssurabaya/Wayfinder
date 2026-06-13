@@ -5,8 +5,8 @@ import numpy as np
 from sentence_transformers import SentenceTransformer, util
 
 print("Memuat mesin NLP (Sentence Transformers)...")
-# Menggunakan model multilingual yang mendukung bahasa Indonesia & Inggris
-model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+# Menggunakan model multilingual MPNet yang lebih pintar dan akurat untuk semantik
+model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
 
 DATABASE_RUANGAN = {}
 daftar_nama_ruangan = []
@@ -34,7 +34,12 @@ KAMUS_SINONIM = {
     "room": "ruang", "door": "pintu", "stairs": "tangga",
     "daftar": "pendaftaran", "antri": "pendaftaran", "registrasi": "pendaftaran", "loket": "pendaftaran", "nomor": "pendaftaran", "antrian": "pendaftaran", "registration": "pendaftaran",
     "parkir": "parkiran", "motor": "parkiran", "mobil": "parkiran", "kendaraan": "parkiran", "parking": "parkiran",
-    "darah": "laboratorium", "lab": "laboratorium", "tes": "laboratorium", "test": "laboratorium", "sampel": "laboratorium"
+    "darah": "laboratorium", "lab": "laboratorium", "tes": "laboratorium", "test": "laboratorium", "sampel": "laboratorium",
+    "batuk": "poli", "pilek": "poli", "flu": "poli", "sesak": "poli", "mual": "poli", "muntah": "poli", "diare": "poli", "mencret": "poli",
+    "kaki": "poli ortopedi", "tangan": "poli ortopedi", "tulang": "poli ortopedi", "patah": "igd", "jatuh": "igd",
+    "jantung": "poli jantung", "dada": "poli jantung", "sesak nafas": "poli jantung",
+    "kulit": "poli kulit", "gatal": "poli kulit", "panu": "poli kulit", "jerawat": "poli kulit",
+    "tht": "poli tht", "telinga": "poli tht", "hidung": "poli tht", "tenggorokan": "poli tht"
 }
 
 # Fungsi pembersihan teks untuk NLP
@@ -90,7 +95,10 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id"):
     input_bersih = bersihkan_teks(input_pengunjung)
 
     # EXACT & WORD INTERSECTION MATCH CHECK
-    exact_matches = []
+    perfect_matches = []
+    substring_matches = []
+    intersection_matches = []
+    
     input_lower = input_pengunjung.lower().strip()
     input_words = set(input_bersih.split())
     
@@ -103,9 +111,8 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id"):
         
         # 1. Match Exact ID or Exact Name (Raw)
         if input_lower == room_name_lower or input_pengunjung == r_id:
-            exact_matches.append(r_id)
+            perfect_matches.append(r_id)
             
-        # Bersihkan nama ruangan dan keywords agar sinonimnya terseragamkan (misal: darurat -> igd)
         clean_room_name = bersihkan_teks(room_name_lower)
         clean_keywords = [bersihkan_teks(k) for k in room_keywords]
         
@@ -119,19 +126,24 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id"):
                 mapping_kunci_ke_id[teks_bersih].append(r_id)
                 room_words.update(teks_bersih.split())
                 
-                # Substring utuh (misal input "igd" dan nama ruangan "instalasi igd")
+                # Substring utuh
                 if input_bersih and input_bersih in teks_bersih:
-                    if r_id not in exact_matches:
-                        exact_matches.append(r_id)
+                    if r_id not in perfect_matches and r_id not in substring_matches:
+                        substring_matches.append(r_id)
         
         # 2. Word Intersection (Irisan Kata Baku)
-        # Jika ada kata baku yang sama persis (misal sama-sama memiliki kata "igd" atau "pendaftaran")
-        # Abaikan jika kata irisannya terlalu umum (kurang dari 3 huruf)
         irisan = input_words.intersection(room_words)
         irisan_valid = [w for w in irisan if len(w) >= 3]
         if irisan_valid:
-            if r_id not in exact_matches:
-                exact_matches.append(r_id)
+            if r_id not in perfect_matches and r_id not in substring_matches and r_id not in intersection_matches:
+                intersection_matches.append(r_id)
+
+    if perfect_matches:
+        exact_matches = perfect_matches
+    elif substring_matches:
+        exact_matches = substring_matches
+    else:
+        exact_matches = intersection_matches
 
     # 3. Fuzzy Typo Match (Jika irisan dan substring gagal)
     if not exact_matches and input_bersih:
