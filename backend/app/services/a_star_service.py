@@ -66,8 +66,8 @@ def _a_star_single_floor(start_node, target_node):
 
 def cari_pasangan_lift_terbaik(start_node, target_node, curr_floor, target_floor):
     from app.core.state import hitung_manhattan
-    lifts_start = [r for r in RUANGAN_GRID.values() if r.get("floor") == curr_floor and "lift" in r.get("name", "").lower() and "tangga" not in r.get("name", "").lower()]
-    lifts_target = [r for r in RUANGAN_GRID.values() if r.get("floor") == target_floor and "lift" in r.get("name", "").lower() and "tangga" not in r.get("name", "").lower()]
+    lifts_start = [r for r in RUANGAN_GRID.values() if r.get("floor") == curr_floor and ("lift" in r.get("name", "").lower() or "elevator" in r.get("name", "").lower()) and "tangga" not in r.get("name", "").lower() and "stairs" not in r.get("name", "").lower()]
+    lifts_target = [r for r in RUANGAN_GRID.values() if r.get("floor") == target_floor and ("lift" in r.get("name", "").lower() or "elevator" in r.get("name", "").lower()) and "tangga" not in r.get("name", "").lower() and "stairs" not in r.get("name", "").lower()]
     
     if not lifts_start or not lifts_target:
         return None, None
@@ -91,8 +91,10 @@ def cari_pasangan_lift_terbaik(start_node, target_node, curr_floor, target_floor
 
 def get_pintu_masuk(floor_name):
     for r_id, room in RUANGAN_GRID.items():
-        if room.get("floor") == floor_name and room.get("name", "").lower() == "pintu masuk":
-            return room
+        if room.get("floor") == floor_name:
+            nama = room.get("name", "").lower()
+            if "pintu masuk" in nama or "entrance" in nama:
+                return room
     return None
 
 def cari_rute_grid(start_id, target_id, language="id"):

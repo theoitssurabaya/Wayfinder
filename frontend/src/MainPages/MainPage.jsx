@@ -471,7 +471,7 @@ export default function App() {
       } else {
         const roomName = translateName(data.data_target.nama_ruangan, language);
         setTargetRoomName(roomName);
-        setSearch(data.data_target.nama_ruangan); // Update dropdown to show the matched NLP room
+        setSearch(roomName); // Update dropdown to show the translated room name
         setPathData(data.jalur_koordinat);
         setNavigationSteps(data.langkah_navigasi);
         setActiveStepIndex(resumeStepIndex);
@@ -777,13 +777,22 @@ export default function App() {
                         opacity: 0, position: "absolute", top: 0, left: 0, width: "100%", height: "100%", cursor: "pointer", zIndex: 2, clipPath: "inset(0 0 0 calc(100% - 40px))"
                       }}
                       value={(() => {
-                        const matchedRoom = rooms.find(r => r.name === search || translateName(r.name, language) === search);
-                        return matchedRoom ? matchedRoom.name : "";
+                        const matchedRoom = rooms.find(r => r.name === search || r.id === search || translateName(r.name, language) === search);
+                        return matchedRoom ? matchedRoom.id : "";
                       })()}
                       onChange={(e) => {
-                        const rawName = e.target.value;
-                        setSearch(rawName);
-                        executeSearch(location, rawName);
+                        const rawId = e.target.value;
+                        const selectedRoom = rooms.find(r => r.id === rawId);
+                        if (selectedRoom) {
+                           let disp = translateName(selectedRoom.name, language);
+                           if (selectedRoom.floor.startsWith("submap_")) {
+                             const pId = selectedRoom.floor.replace("submap_", "");
+                             const pRoom = rooms.find(r => r.id === pId);
+                             if (pRoom) disp += " " + translateName(pRoom.name, language);
+                           }
+                           setSearch(disp);
+                        }
+                        executeSearch(location, rawId);
                       }}
                     >
                       <option value="" disabled>{getText('select_room') || getText('search_placeholder')}</option>
@@ -799,9 +808,15 @@ export default function App() {
                               }
                               return false;
                             })
-                            .map((room) => (
-                              <option key={room.id} value={room.name}>{translateName(room.name, language)}</option>
-                            ))}
+                            .map((room) => {
+                              let displayName = translateName(room.name, language);
+                              if (room.floor.startsWith("submap_")) {
+                                const parentId = room.floor.replace("submap_", "");
+                                const parentRoom = rooms.find(r => r.id === parentId);
+                                if (parentRoom) displayName += " " + translateName(parentRoom.name, language);
+                              }
+                              return <option key={room.id} value={room.id}>{displayName}</option>;
+                            })}
                         </optgroup>
                       ))}
                     </select>
@@ -817,28 +832,28 @@ export default function App() {
                   {language === 'id' ? 'Pencarian Cepat' : 'Quick Searches'}
                 </p>
                 <div className="quick-actions">
-                  <button className="quick-action-btn" onClick={() => { setSearch("Pintu Masuk"); executeSearch(location, "Pintu Masuk"); }}>
+                  <button className="quick-action-btn" onClick={() => { const q = language === 'id' ? 'Pintu Masuk' : 'Entrance'; setSearch(q); executeSearch(location, q); }}>
                     <span>🚪</span> {language === 'id' ? 'Pintu Masuk' : 'Entrance'}
                   </button>
-                  <button className="quick-action-btn" onClick={() => { setSearch("IGD"); executeSearch(location, "IGD"); }}>
+                  <button className="quick-action-btn" onClick={() => { const q = language === 'id' ? 'IGD' : 'ER'; setSearch(q); executeSearch(location, q); }}>
                     <span>🚨</span> {language === 'id' ? 'IGD' : 'ER'}
                   </button>
-                  <button className="quick-action-btn" onClick={() => { setSearch("Toilet"); executeSearch(location, "Toilet"); }}>
-                    <span>🚻</span> Toilet
+                  <button className="quick-action-btn" onClick={() => { const q = language === 'id' ? 'Toilet' : 'Restroom'; setSearch(q); executeSearch(location, q); }}>
+                    <span>🚻</span> {language === 'id' ? 'Toilet' : 'Restroom'}
                   </button>
-                  <button className="quick-action-btn" onClick={() => { setSearch("Farmasi"); executeSearch(location, "Farmasi"); }}>
+                  <button className="quick-action-btn" onClick={() => { const q = language === 'id' ? 'Farmasi' : 'Pharmacy'; setSearch(q); executeSearch(location, q); }}>
                     <span>💊</span> {language === 'id' ? 'Farmasi' : 'Pharmacy'}
                   </button>
-                  <button className="quick-action-btn" onClick={() => { setSearch("Mushola"); executeSearch(location, "Mushola"); }}>
+                  <button className="quick-action-btn" onClick={() => { const q = language === 'id' ? 'Mushola' : 'Prayer Room'; setSearch(q); executeSearch(location, q); }}>
                     <span>🕌</span> {language === 'id' ? 'Mushola' : 'Prayer Room'}
                   </button>
-                  <button className="quick-action-btn" onClick={() => { setSearch("Tangga Darurat"); executeSearch(location, "Tangga Darurat"); }}>
+                  <button className="quick-action-btn" onClick={() => { const q = language === 'id' ? 'Tangga Darurat' : 'Emergency Stairs'; setSearch(q); executeSearch(location, q); }}>
                     <span>🏃</span> {language === 'id' ? 'Tangga Darurat' : 'Emergency Stairs'}
                   </button>
-                  <button className="quick-action-btn" onClick={() => { setSearch("Lift"); executeSearch(location, "Lift"); }}>
+                  <button className="quick-action-btn" onClick={() => { const q = language === 'id' ? 'Lift' : 'Elevator'; setSearch(q); executeSearch(location, q); }}>
                     <span>🛗</span> {language === 'id' ? 'Lift' : 'Elevator'}
                   </button>
-                  <button className="quick-action-btn" onClick={() => { setSearch("Pusat Informasi"); executeSearch(location, "Pusat Informasi"); }}>
+                  <button className="quick-action-btn" onClick={() => { const q = language === 'id' ? 'Pusat Informasi' : 'Information Center'; setSearch(q); executeSearch(location, q); }}>
                     <span>ℹ️</span> {language === 'id' ? 'Pusat Informasi' : 'Information Center'}
                   </button>
                 </div>

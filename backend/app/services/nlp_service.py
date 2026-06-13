@@ -90,15 +90,96 @@ KAMUS_SINONIM = {
     "paru": "poli paru", "tbc": "poli paru", "asma": "poli paru", "bronkitis": "poli paru", "batuk berdarah": "poli paru", "flek paru": "poli paru",
 
     # Poli Jiwa / Psikiatri
-    "jiwa": "poli jiwa", "psikiater": "poli jiwa", "psikolog": "poli jiwa", "stres": "poli jiwa", "depresi": "poli jiwa", "gila": "poli jiwa", "mental": "poli jiwa", "cemas": "poli jiwa", "insomnia": "poli jiwa", "susah tidur": "poli jiwa"
+    "jiwa": "poli jiwa", "psikiater": "poli jiwa", "psikolog": "poli jiwa", "stres": "poli jiwa", "depresi": "poli jiwa", "gila": "poli jiwa", "mental": "poli jiwa", "cemas": "poli jiwa", "insomnia": "poli jiwa", "susah tidur": "poli jiwa",
+
+    # English to Indonesian Mappings
+
+    # ER & Emergency
+    "er": "igd", "emergency": "igd", "casualty": "igd", "accident": "igd", "critical": "igd", "bleeding": "igd", "faint": "igd", "heart attack": "igd", "poisoning": "igd", "burns": "igd",
+
+    # Toilet
+    "restroom": "toilet", "washroom": "toilet", "bathroom": "toilet", "lavatory": "toilet", "men's room": "toilet", "women's room": "toilet", "urinal": "toilet", "pee": "toilet", "poop": "toilet",
+
+    # Admin & Finance
+    "cashier": "kasir", "billing": "kasir", "payment": "kasir", "pay": "kasir", "bill": "kasir", 
+    "registration": "pendaftaran", "register": "pendaftaran", "admission": "pendaftaran", "reception": "pendaftaran", "queue": "pendaftaran", "enrollment": "pendaftaran",
+
+    # Pharmacy & Meds
+    "pharmacy": "farmasi", "medicine": "farmasi", "drugs": "farmasi", "pill": "farmasi", "prescription": "farmasi", "medication": "farmasi", "drugstore": "farmasi",
+
+    # Radiology & Lab
+    "radiology": "radiologi", "xray": "radiologi", "x-ray": "radiologi", "mri": "radiologi", "ultrasound": "radiologi", "scan": "radiologi", "imaging": "radiologi",
+    "laboratory": "laboratorium", "lab": "laboratorium", "blood test": "laboratorium", "urine test": "laboratorium", "swab": "laboratorium", "sample": "laboratorium",
+
+    # Inpatient & ICU
+    "inpatient": "rawat inap", "ward": "rawat inap", "hospitalization": "rawat inap", "admission": "rawat inap", "visiting": "rawat inap", "stay": "rawat inap",
+    "intensive care": "icu", "critical care": "icu",
+
+    # Surgery & Morgue
+    "surgery": "ruang operasi", "operating room": "ruang operasi", "operation": "ruang operasi", "surgeon": "ruang operasi", "theater": "ruang operasi",
+    "morgue": "kamar jenazah", "mortuary": "kamar jenazah", "dead": "kamar jenazah", "corpse": "kamar jenazah",
+
+    # General Facilities
+    "mosque": "mushola", "prayer room": "mushola", "pray": "mushola",
+    "canteen": "kantin", "cafeteria": "kantin", "food court": "kantin", "cafe": "kantin", "eat": "kantin", "drink": "kantin", "food": "kantin", "breakfast": "kantin", "coffee": "kantin",
+    "parking": "parkiran", "car park": "parkiran", "basement": "parkiran", "valet": "parkiran",
+    "garden": "taman", "park": "taman", "smoking area": "taman",
+    "information": "pusat informasi", "customer service": "pusat informasi", "help desk": "pusat informasi", "security": "pusat informasi", "guard": "pusat informasi",
+    "atm": "atm", "cash machine": "atm", "withdraw": "atm", "bank": "atm",
+    "waiting room": "ruang tunggu", "wait": "ruang tunggu", "lounge": "ruang tunggu",
+
+    # Navigation
+    "stairs": "tangga", "staircase": "tangga", "elevator": "lift", "escalator": "tangga", "entrance": "pintu masuk", "entry": "pintu masuk", "exit": "pintu keluar", "out": "pintu keluar", "in": "pintu masuk", "door": "pintu",
+
+    # Clinics (Outpatient)
+    "specialist clinic": "poli spesialis", "specialist": "spesialis",
+    "children clinic": "poli anak", "kids clinic": "poli anak", "dental clinic": "poli gigi", "eye clinic": "poli mata",
+    "heart clinic": "poli jantung", "nerve clinic": "poli saraf", "skin clinic": "poli kulit", "lung clinic": "poli paru",
+    "clinic": "poli", "outpatient": "poli", "doctor": "poli", "consultation": "poli", "checkup": "poli", "polyclinic": "poli",
+
+    # General Symptoms -> Poli Umum / Penyakit Dalam
+    "general": "umum", "general practitioner": "poli umum", "gp": "poli umum", "general clinic": "poli umum",
+    "internal medicine": "poli penyakit dalam", "internal": "penyakit dalam",
+    "cough": "poli umum", "cold": "poli umum", "flu": "poli umum", "fever": "poli umum", "nausea": "poli umum", "vomiting": "poli umum", "diarrhea": "poli umum", "weakness": "poli penyakit dalam", "stomachache": "poli penyakit dalam", "gastric": "poli penyakit dalam", "diabetes": "poli penyakit dalam", "cholesterol": "poli penyakit dalam", "hypertension": "poli penyakit dalam", "blood pressure": "poli penyakit dalam",
+
+    # Obgyn & Pediatrics
+    "obstetrics": "poli kandungan", "gynecology": "poli kandungan", "obgyn": "poli kandungan", "maternity": "poli kandungan", "pregnancy": "poli kandungan", "pregnant": "poli kandungan", "delivery": "poli kandungan", "midwife": "poli kandungan", "miscarriage": "poli kandungan",
+    "pediatrics": "poli anak", "pediatrician": "poli anak", "child": "poli anak", "kids": "poli anak", "baby": "poli anak", "infant": "poli anak", "vaccination": "poli anak", "immunization": "poli anak",
+
+    # Dental
+    "dental": "poli gigi", "dentist": "poli gigi", "toothache": "poli gigi", "teeth": "poli gigi", "tooth": "poli gigi", "braces": "poli gigi", "cavity": "poli gigi", "gums": "poli gigi",
+
+    # Eye & ENT
+    "eye": "poli mata", "ophthalmology": "poli mata", "glasses": "poli mata", "vision": "poli mata", "blind": "poli mata", "cataract": "poli mata",
+    "ent": "poli tht", "ear": "poli tht", "nose": "poli tht", "throat": "poli tht", "deaf": "poli tht", "sinus": "poli tht", "tonsil": "poli tht",
+
+    # Cardiology & Neurology
+    "cardiology": "poli jantung", "heart": "poli jantung", "chest pain": "poli jantung", "palpitation": "poli jantung",
+    "neurology": "poli saraf", "nerve": "poli saraf", "stroke": "poli saraf", "paralysis": "poli saraf", "seizure": "poli saraf", "epilepsy": "poli saraf", "headache": "poli saraf", "migraine": "poli saraf", "dizzy": "poli saraf", "vertigo": "poli saraf",
+
+    # Orthopedics & Rehab
+    "orthopedics": "poli ortopedi", "bone": "poli ortopedi", "fracture": "poli ortopedi", "joint": "poli ortopedi", "muscle": "poli ortopedi", "sprain": "poli ortopedi", "rheumatism": "poli ortopedi",
+    "physiotherapy": "rehabilitasi medik", "rehab": "rehabilitasi medik", "therapy": "rehabilitasi medik", "massage": "rehabilitasi medik",
+
+    # Dermatology
+    "dermatology": "poli kulit", "skin": "poli kulit", "itchy": "poli kulit", "acne": "poli kulit", "allergy": "poli kulit", "venereal": "poli kulit", "syphilis": "poli kulit", "beauty": "poli kulit", "skincare": "poli kulit",
+
+    # Pulmonology
+    "pulmonology": "poli paru", "lung": "poli paru", "asthma": "poli paru", "tuberculosis": "poli paru", "tb": "poli paru", "bronchitis": "poli paru",
+
+    # Psychiatry
+    "psychiatry": "poli jiwa", "psychiatrist": "poli jiwa", "psychology": "poli jiwa", "stress": "poli jiwa", "depression": "poli jiwa", "crazy": "poli jiwa", "mental": "poli jiwa", "anxiety": "poli jiwa", "insomnia": "poli jiwa"
 }
 
 # Fungsi pembersihan teks untuk NLP
 def bersihkan_teks(teks_kotor):
     teks = teks_kotor.lower()
     
+    # Sort keys by length descending so compound words are replaced before single words
+    sorted_synonyms = sorted(KAMUS_SINONIM.items(), key=lambda item: len(item[0]), reverse=True)
+    
     # Perbaikan sinonim (misal: "mau ambil obat" -> "mau ambil farmasi")
-    for slang, baku in KAMUS_SINONIM.items():
+    for slang, baku in sorted_synonyms:
         teks = re.sub(rf'\b{slang}\b', baku, teks)
         
     teks = re.sub(r'[^\w\s]', '', teks)
