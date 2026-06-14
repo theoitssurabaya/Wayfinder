@@ -35,11 +35,6 @@
   transition: background 0.2s, border-color 0.2s;
 }
 
-.header-login-btn:hover {
-  background: rgba(255,255,255,0.26);
-  border-color: rgba(255,255,255,0.6);
-}
-
 /* ── MAIN LAYOUT ─────────────────────────────────────── */
 .main-layout {
   display: flex;
@@ -109,10 +104,6 @@
   transition: background-color 0.2s;
   z-index: 5;
 }
-.search-btn-wrapper:hover {
-  background-color: rgba(26, 115, 200, 0.08);
-}
-
 
 .mic-btn-wrapper {
   position: absolute;
@@ -129,20 +120,12 @@
   transition: background-color 0.2s;
   z-index: 5;
 }
-.mic-btn-wrapper:hover {
-  background-color: rgba(26, 115, 200, 0.08);
-}
-
 .search-icon {
   color: var(--text-muted);
   width: 22px;
   height: 22px;
   transition: color 0.2s;
 }
-.search-btn-wrapper:hover .search-icon {
-  color: var(--blue-primary);
-}
-
 @keyframes pulseMic {
   0% { transform: scale(1); opacity: 1; }
   50% { transform: scale(1.2); opacity: 0.7; }
@@ -155,10 +138,6 @@
   height: 22px;
   transition: color 0.2s;
 }
-.mic-btn-wrapper:hover .mic-icon {
-  color: var(--blue-primary);
-}
-
 .pulsing-mic {
   animation: pulseMic 1s infinite ease-in-out;
   color: #ff3b3b !important;
@@ -307,10 +286,6 @@
   transition: background 0.2s;
 }
 
-.show-qr-btn:hover {
-  background: var(--blue-dark);
-}
-
 /* ── VERTICAL FLOOR SCRUBBER (OPTION 1) ───────────── */
 .vertical-scrubber-wrapper {
   position: absolute;
@@ -364,15 +339,6 @@ body.dark-mode .vertical-scrubber-wrapper {
 
 body.dark-mode .scrubber-btn {
   background: rgba(15, 23, 42, 0.8);
-}
-
-.scrubber-btn:hover {
-  transform: scale(1.05);
-  background: var(--white);
-}
-
-body.dark-mode .scrubber-btn:hover {
-  background: var(--bg);
 }
 
 .scrubber-btn.active {
@@ -577,12 +543,6 @@ body.dark-mode .scrubber-btn:hover {
   transition: all 0.2s ease;
 }
 
-.close-modal-btn:hover {
-  background: #e2e8f0;
-  color: #0f172a;
-  transform: rotate(90deg);
-}
-
 .login-header {
   display: flex;
   flex-direction: column;
@@ -732,21 +692,12 @@ body.dark-mode .scrubber-btn:hover {
   margin-top: 8px;
 }
 
-.modern-submit-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(26, 115, 200, 0.45);
-}
-
 .modern-submit-btn:active {
   transform: translateY(0);
 }
 
 .btn-arrow {
   transition: transform 0.2s ease;
-}
-
-.modern-submit-btn:hover .btn-arrow {
-  transform: translateX(4px);
 }
 
 /* Animations */
@@ -937,14 +888,6 @@ body.dark-mode .scrubber-btn:hover {
 
 .quick-action-btn span {
   font-size: 18px;
-}
-
-.quick-action-btn:hover {
-  border-color: var(--blue-primary);
-  color: var(--blue-primary);
-  background: var(--blue-light);
-  transform: translateY(-1px);
-  box-shadow: 0 3px 8px rgba(26,115,200,0.12);
 }
 
 .route-planner-inputs .dropdown-wrapper:focus-within .dropdown-select.route-select,

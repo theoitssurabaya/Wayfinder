@@ -51,8 +51,6 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 }
 
 .header-edit-btn { background: rgba(255, 187, 1, 0.749); border-color: rgba(255,255,255,0.2); }
-.header-login-btn:hover { background: rgba(255,255,255,0.26); border-color: rgba(255,255,255,0.6); }
-.header-edit-btn:hover { background: rgba(255,255,255,0.2); }
 
 /* ── MAIN LAYOUT ─────────────────────────────────────── */
 .main-layout { display: flex; gap: 28px; padding: 36px 40px; margin: 0 auto; min-height: calc(100vh - 64px); }
@@ -87,18 +85,12 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   transition: background-color 0.2s;
   z-index: 5;
 }
-.search-btn-wrapper:hover {
-  background-color: rgba(26, 115, 200, 0.08);
-}
 
 .search-icon {
   color: var(--text-muted);
   width: 22px;
   height: 22px;
   transition: color 0.2s;
-}
-.search-btn-wrapper:hover .search-icon {
-  color: var(--blue-primary);
 }
 
 /* Destination output dynamic box */
@@ -302,22 +294,10 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   border: 1.5px solid var(--border);
 }
 
-.confirm-btn.no:hover {
-  background: var(--bg);
-  color: var(--text-main);
-  transform: translateY(-1px);
-}
-
 .confirm-btn.yes {
   background: var(--blue-primary);
   color: var(--white);
   box-shadow: 0 4px 10px rgba(26, 115, 200, 0.2);
-}
-
-.confirm-btn.yes:hover {
-  background: #3b82f6;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(26, 115, 200, 0.35);
 }
 
 .confirm-btn:active {
@@ -390,10 +370,6 @@ body.dark-mode .confirm-btn.no {
   background: transparent;
   color: #e2e8f0;
   border-color: #475569;
-}
-
-body.dark-mode .confirm-btn.no:hover {
-  background: #334155;
 }
 
 body.dark-mode .logout-badge {

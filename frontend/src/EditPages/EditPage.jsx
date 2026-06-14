@@ -670,10 +670,10 @@ export default function EditPage() {
         </main>
 
         <aside className="edit-page-right-panel">
-          <div style={{ background: "var(--white)", padding: "12px", borderRadius: "6px", border: "1px solid var(--border)", marginBottom: "15px", boxShadow: "0 2px 4px rgba(0,0,0,0.03)" }}>
-            <h4 style={{ margin: "0 0 10px 0", fontSize: "13px", color: "var(--blue-primary)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div className="edit-card">
+            <h4 className="edit-card-title">
               <span>🏢 {getText('floor_management')}</span>
-              <span style={{ fontSize: "10px", background: "var(--bg)", padding: "2px 6px", borderRadius: "10px", color: "var(--blue-dark)" }}>{floors.length} {getText('floors_count')}</span>
+              <span className="badge">{floors.length} {getText('floors_count')}</span>
             </h4>
             <select
               value={activeEditFloor}
@@ -681,22 +681,22 @@ export default function EditPage() {
                 setActiveEditFloor(e.target.value);
                 setSelectedId(null);
               }}
-              style={{ width: "100%", padding: "8px", borderRadius: "4px", border: "1px solid var(--border)", marginBottom: "10px", fontSize: "13px", fontWeight: "bold", color: "var(--blue-primary)", background: "var(--bg)", cursor: "pointer" }}
+              className="edit-select"
             >
               {floors.map(f => <option key={f} value={f}>{translateName(f, language)}</option>)}
             </select>
 
-            <div style={{ display: "flex", gap: "6px" }}>
-              <button onClick={handleAddFloor} style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#28a745", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>{getText('add_floor')}</button>
-              <button onClick={handleDeleteFloor} style={{ flex: 1, padding: "7px", fontSize: "11px", background: "#dc3545", color: "white", border: "none", borderRadius: "4px", cursor: "pointer", fontWeight: "bold" }}>{getText('del_floor')}</button>
+            <div className="edit-btn-group">
+              <button onClick={handleAddFloor} className="edit-btn btn-success">{getText('add_floor')}</button>
+              <button onClick={handleDeleteFloor} className="edit-btn btn-danger">{getText('del_floor')}</button>
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "6px", marginBottom: "15px" }}>
+          <div className="edit-btn-group" style={{ marginBottom: "15px" }}>
             <button
               onClick={handleUndo}
               disabled={historyStep <= 0}
-              style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep <= 0 ? (isDarkMode ? "#334155" : "#f1f3f5") : "var(--white)", color: historyStep <= 0 ? (isDarkMode ? "#64748b" : "#adb5bd") : "var(--text-main)", border: "1px solid var(--border)", borderRadius: "4px", cursor: historyStep <= 0 ? "not-allowed" : "pointer", fontWeight: "bold" }}
+              className="edit-btn btn-secondary"
               title="Undo (Ctrl+Z)"
             >
               ↶ {getText('undo')}
@@ -704,7 +704,7 @@ export default function EditPage() {
             <button
               onClick={handleRedo}
               disabled={historyStep >= history.length - 1}
-              style={{ flex: 1, padding: "8px", fontSize: "12px", background: historyStep >= history.length - 1 ? (isDarkMode ? "#334155" : "#f1f3f5") : "var(--white)", color: historyStep >= history.length - 1 ? (isDarkMode ? "#64748b" : "#adb5bd") : "var(--text-main)", border: "1px solid var(--border)", borderRadius: "4px", cursor: historyStep >= history.length - 1 ? "not-allowed" : "pointer", fontWeight: "bold" }}
+              className="edit-btn btn-secondary"
               title="Redo (Ctrl+Y)"
             >
               {getText('redo')} ↷
@@ -713,17 +713,13 @@ export default function EditPage() {
 
           <h3>{getText('edit_panel')} - {translateName(activeEditFloor, language)}</h3>
           <div className="edit-tools">
-            <p style={{ fontSize: "12px", color: "var(--text-muted)" }}>
+            <p className="edit-selected-text">
               {selectedId ? `${getText('selected')}: ${translateName(placedElements.find(el => el.id === selectedId)?.name || "Kiosk", language)}` : getText('no_element_selected')}
             </p>
             <button
-              className="edit-page-btn delete"
+              className="edit-btn btn-danger delete-btn"
               onClick={deleteSelectedElement}
               disabled={!selectedId}
-              style={{
-                width: "100%", padding: "10px", backgroundColor: selectedId ? "#f44336" : (isDarkMode ? "#334155" : "#ccc"),
-                color: "white", border: "none", borderRadius: "5px", cursor: selectedId ? "pointer" : "not-allowed", marginTop: "10px"
-              }}
             >
               {getText('del_element')}
             </button>
@@ -757,20 +753,20 @@ export default function EditPage() {
                         saveHistory(newElements);
                       }
                     }}
-                    style={{ width: "100%", padding: "10px", backgroundColor: "#2196F3", color: "white", border: "none", borderRadius: "5px", cursor: "pointer", fontWeight: "bold" }}
+                    className="edit-btn btn-primary"
                   >
                     {getText('enter_submap')}
                   </button>
 
-                  <div className="endpoint-controls" style={{ background: isDarkMode ? "#334155" : "#f9f9f9", padding: "10px", borderRadius: "5px", border: "1px solid var(--border)" }}>
-                    <h4 style={{ margin: "0 0 10px 0", fontSize: "14px", color: "#B71C1C" }}>{getText('active_endpoint_side')}</h4>
-                    <p style={{ fontSize: "11px", color: "var(--text-muted)", marginBottom: "6px" }}>{getText('change_manual_hint')}</p>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", background: "var(--bg)", padding: "8px", borderRadius: "4px", border: "1px solid var(--border)" }}>
+                  <div className="endpoint-controls edit-card-inner">
+                    <h4 className="endpoint-title">{getText('active_endpoint_side')}</h4>
+                    <p className="endpoint-hint">{getText('change_manual_hint')}</p>
+                    <div className="endpoint-grid">
                       {['top', 'bottom', 'left', 'right'].map(side => {
                         const labels = { top: getText('top'), bottom: getText('bottom'), left: getText('left'), right: getText('right') };
                         const isChecked = (room.endpoints || []).includes(side);
                         return (
-                          <label key={side} style={{ fontSize: "12px", display: "flex", alignItems: "center", gap: "5px", cursor: "pointer" }}>
+                          <label key={side} className="endpoint-label">
                             <input
                               type="checkbox"
                               checked={isChecked}
@@ -780,6 +776,7 @@ export default function EditPage() {
                                 updateRoom({ endpoints: next.length > 0 ? next : ['bottom'] });
                               }}
                             />
+                            <span className="checkbox-custom"></span>
                             {labels[side]}
                           </label>
                         );
@@ -797,6 +794,7 @@ export default function EditPage() {
           <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "-5px", marginBottom: "15px" }}>{getText('template_hint')}</p>
 
           <div className="dnd-zone" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            <h5 style={{ margin: "5px 0 0 0", fontSize: "12px", color: "var(--text-main)" }}>Rooms</h5>
             {[
               { name: "Ruangan Pintu Berlawanan", endpoints: ['left', 'right'], color: "#4caf50" },
               { name: "Ruangan 1 Pintu", endpoints: ['top'], color: "#4caf50" },
@@ -807,6 +805,7 @@ export default function EditPage() {
               <div
                 key={preset.name}
                 draggable
+                className="template-card template-room"
                 onDragStart={(e) => {
                   e.dataTransfer.setData("text/plain", JSON.stringify({
                     type: "new-room",
@@ -827,19 +826,15 @@ export default function EditPage() {
                   setPlacedElements(newElements);
                   saveHistory(newElements);
                 }}
-                style={{
-                  width: "100%", height: "40px", background: preset.color, border: "1px solid #1b5e20",
-                  cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "4px"
-                }}
               >
-                <p style={{ color: "#1b5e20", padding: "5px", fontSize: "11px", textAlign: "center", fontWeight: "bold" }}>
-                  {translateName(preset.name, language)}
-                </p>
+                <div className="template-icon">🚪</div>
+                <p>{translateName(preset.name, language)}</p>
               </div>
             ))}
 
-            <div style={{ margin: "10px 0", borderTop: "1px solid var(--border)" }}></div>
+            <div style={{ margin: "5px 0", borderTop: "1px solid var(--border)" }}></div>
 
+            <h5 style={{ margin: "0", fontSize: "12px", color: "var(--text-main)" }}>Kiosk</h5>
             <div
               draggable
               onDragStart={(e) => {
@@ -860,18 +855,15 @@ export default function EditPage() {
                 setPlacedElements(newElements);
                 saveHistory(newElements);
               }}
-              style={{
-                width: GRID_SIZE * 2, height: GRID_SIZE * 2, background: "#2196F3", border: "1px solid #0D47A1",
-                cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto"
-              }}
+              className="template-card template-kiosk"
             >
-              <p style={{ color: "white", padding: "2px", fontSize: "10px", textAlign: "center", fontWeight: "bold" }}>
-                {getText('drag_kiosk')}
-              </p>
+              <div className="template-icon">ℹ️</div>
+              <p>{getText('drag_kiosk')}</p>
             </div>
 
-            <div style={{ margin: "10px 0", borderTop: "1px solid var(--border)" }}></div>
+            <div style={{ margin: "5px 0", borderTop: "1px solid var(--border)" }}></div>
 
+            <h5 style={{ margin: "0", fontSize: "12px", color: "var(--text-main)" }}>Entrance Door</h5>
             <div
               draggable
               onDragStart={(e) => {
@@ -892,14 +884,10 @@ export default function EditPage() {
                 setPlacedElements(newElements);
                 saveHistory(newElements);
               }}
-              style={{
-                width: GRID_SIZE * 2, height: GRID_SIZE * 2, background: "#4CAF50", border: "1px solid #2E7D32",
-                cursor: "grab", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto"
-              }}
+              className="template-card template-entrance"
             >
-              <p style={{ color: "white", padding: "2px", fontSize: "10px", textAlign: "center", fontWeight: "bold" }}>
-                {language === 'id' ? 'Pintu Masuk' : 'Entrance'}
-              </p>
+              <div className="template-icon">🚪</div>
+              <p>{language === 'id' ? 'Pintu Masuk' : 'Entrance'}</p>
             </div>
           </div>
         </aside>

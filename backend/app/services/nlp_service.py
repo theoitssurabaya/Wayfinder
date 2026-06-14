@@ -33,14 +33,14 @@ KAMUS_SINONIM = {
     "rontgen": "radiologi", "xray": "radiologi", "scan": "radiologi", "mri": "radiologi", "usg": "radiologi", "ct": "radiologi", "radiology": "radiologi", "foto": "radiologi", "sinar x": "radiologi",
 
     # Laboratorium
-    "darah": "laboratorium", "lab": "laboratorium", "tes": "laboratorium", "test": "laboratorium", "sampel": "laboratorium", "urine": "laboratorium", "urin": "laboratorium", "cek darah": "laboratorium", "swab": "laboratorium", "pcr": "laboratorium",
+    "lab": "laboratorium", "tes": "laboratorium", "test": "laboratorium", "sampel": "laboratorium", "swab": "laboratorium", "pcr": "laboratorium",
 
     # Rawat Inap & Fasilitas
     "menginap": "rawat inap", "besuk": "rawat inap", "jenguk": "rawat inap", "opname": "rawat inap", "bangsal": "rawat inap", "inpatient": "rawat inap", "ward": "rawat inap", "visit": "rawat inap", "kamar": "rawat inap", "ruang rawat": "rawat inap", "vip": "rawat inap", "vvip": "rawat inap",
     "icu": "icu", "nicu": "nicu", "picu": "picu", "hcu": "icu", "perawatan intensif": "icu", "koma": "icu",
 
     # Operasi & Kamar Jenazah
-    "operasi": "ruang operasi", "bedah": "ruang operasi", "ok": "ruang operasi", "pembedahan": "ruang operasi", "caesar": "ruang operasi",
+    "operasi": "ruang operasi", "ok": "ruang operasi", "pembedahan": "ruang operasi", "caesar": "ruang operasi", "kamar bedah": "ruang operasi",
     "meninggal": "kamar jenazah", "mati": "kamar jenazah", "jenazah": "kamar jenazah", "mayat": "kamar jenazah", "morgue": "kamar jenazah", "kremasi": "kamar jenazah",
 
     # MCU (Medical Check Up)
@@ -109,7 +109,7 @@ KAMUS_SINONIM = {
 
     # Radiology & Lab
     "radiology": "radiologi", "xray": "radiologi", "x-ray": "radiologi", "mri": "radiologi", "ultrasound": "radiologi", "scan": "radiologi", "imaging": "radiologi",
-    "laboratory": "laboratorium", "lab": "laboratorium", "blood test": "laboratorium", "urine test": "laboratorium", "swab": "laboratorium", "sample": "laboratorium",
+    "laboratory": "laboratorium", "lab": "laboratorium", "swab": "laboratorium", "sample": "laboratorium",
 
     # Inpatient & ICU
     "inpatient": "rawat inap", "ward": "rawat inap", "hospitalization": "rawat inap", "admission": "rawat inap", "visiting": "rawat inap", "stay": "rawat inap",
@@ -168,7 +168,30 @@ KAMUS_SINONIM = {
     "pulmonology": "poli paru", "lung": "poli paru", "asthma": "poli paru", "tuberculosis": "poli paru", "tb": "poli paru", "bronchitis": "poli paru",
 
     # Psychiatry
-    "psychiatry": "poli jiwa", "psychiatrist": "poli jiwa", "psychology": "poli jiwa", "stress": "poli jiwa", "depression": "poli jiwa", "crazy": "poli jiwa", "mental": "poli jiwa", "anxiety": "poli jiwa", "insomnia": "poli jiwa"
+    "psychiatry": "poli jiwa", "psychiatrist": "poli jiwa", "psychology": "poli jiwa", "stress": "poli jiwa", "depression": "poli jiwa", "crazy": "poli jiwa", "mental": "poli jiwa", "anxiety": "poli jiwa", "insomnia": "poli jiwa",
+
+    # Additional Special Facilities (Dialysis, Nutrition, Lactation, Medical Records, etc)
+    "hemodialisa": "hemodialisa", "cuci darah": "hemodialisa", "hd": "hemodialisa", "dialysis": "hemodialisa",
+    "gizi": "poli gizi", "nutrisi": "poli gizi", "diet": "poli gizi", "nutrition": "poli gizi", "dietitian": "poli gizi",
+    "laktasi": "ruang laktasi", "menyusui": "ruang laktasi", "asi": "ruang laktasi", "nursing room": "ruang laktasi", "breastfeeding": "ruang laktasi",
+    "ruang bersalin": "ruang bersalin", "vk": "ruang bersalin", "delivery room": "ruang bersalin", "labor room": "ruang bersalin",
+    "rekam medis": "rekam medis", "medical record": "rekam medis", "berkas": "rekam medis",
+    "isolasi": "ruang isolasi", "menular": "ruang isolasi", "isolation": "ruang isolasi",
+    "donor darah": "donor darah", "pmi": "donor darah", "blood donation": "donor darah",
+    "nurse station": "ruang perawat", "jaga perawat": "ruang perawat",
+
+    # Comprehensive Production Additions (Specialized Clinics, Admin, Facilities)
+    "bedah": "poli bedah", "surgery clinic": "poli bedah", "bedah umum": "poli bedah",
+    "urologi": "poli urologi", "saluran kemih": "poli urologi", "prostat": "poli urologi", "kencing batu": "poli urologi", "urology": "poli urologi",
+    "onkologi": "poli onkologi", "kanker": "poli onkologi", "tumor": "poli onkologi", "kemoterapi": "poli onkologi", "kemo": "poli onkologi", "chemo": "poli onkologi", "oncology": "poli onkologi",
+    "geriatri": "poli geriatri", "lansia": "poli geriatri", "manula": "poli geriatri", "orang tua": "poli geriatri", "geriatrics": "poli geriatri",
+    "andrologi": "poli andrologi", "fertilitas": "poli fertilitas", "bayi tabung": "poli fertilitas", "ivf": "poli fertilitas", "kesuburan": "poli fertilitas", "promil": "poli fertilitas",
+    "perinatologi": "ruang perinatologi", "inkubator": "ruang perinatologi", "ruang bayi": "ruang perinatologi", "nursery": "ruang perinatologi",
+    "paviliun": "vip", "eksekutif": "vip", "premium": "vip", "executive": "vip",
+    "jkn": "pendaftaran", "kis": "pendaftaran", "klaim": "pendaftaran", "bpjs kesehatan": "pendaftaran",
+    "minimarket": "minimarket", "koperasi": "minimarket", "mart": "minimarket", "toko": "minimarket", "swalayan": "minimarket", "convenience store": "minimarket",
+    "forensik": "kamar jenazah", "visum": "kamar jenazah", "otopsi": "kamar jenazah", "autopsi": "kamar jenazah", "forensic": "kamar jenazah",
+    "ambulans": "igd", "ambulance": "igd", "mobil jenazah": "kamar jenazah"
 }
 
 # Fungsi pembersihan teks untuk NLP

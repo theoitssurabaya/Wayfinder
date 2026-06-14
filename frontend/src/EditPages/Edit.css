@@ -4,9 +4,15 @@
   display: flex;
   justify-content: space-between;
   padding: 15px 40px;
-  background: #1a73c8;
+  background: rgba(26, 115, 200, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   color: white;
   align-items: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 100;
+  position: relative;
 }
 
 .edit-page-actions {
@@ -35,37 +41,260 @@
 
 .edit-page-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 340px;
   gap: 24px;
   padding: 24px;
   height: calc(100vh - 70px);
+  background: var(--bg);
 }
 
 .edit-page-map {
   background: var(--bg);
-  border: 1.5px solid var(--border);
-  border-radius: 14px;
+  border: 1px solid rgba(200, 212, 224, 0.5);
+  border-radius: var(--radius-xl);
   overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.02);
+}
+body.dark-mode .edit-page-map {
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .edit-page-right-panel {
-  background: var(--white);
-  border-radius: 14px;
-  padding: 20px;
-  border: 1.5px solid var(--border);
+  background: transparent;
   display: flex;
   flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding-right: 8px;
 }
 
-.edit-page-right-panel .dnd-zone {
-  margin-top: 15px;
-  flex-grow: 1;
-  border: 2px dashed var(--border);
+/* Scrollbar for right panel */
+.edit-page-right-panel::-webkit-scrollbar {
+  width: 6px;
+}
+.edit-page-right-panel::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 10px;
+}
+body.dark-mode .edit-page-right-panel::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── MODERN CARDS ── */
+.edit-card {
+  background: var(--white);
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s ease;
+}
+.edit-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: rgba(26, 115, 200, 0.3);
+}
+
+.edit-card-inner {
+  background: var(--bg);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.edit-card-title {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+}
+
+.badge {
+  font-size: 11px;
+  background: rgba(26, 115, 200, 0.1);
+  padding: 3px 8px;
+  border-radius: 12px;
+  color: var(--blue-primary);
+  font-weight: 600;
+}
+
+/* ── FORM ELEMENTS ── */
+.edit-select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+}
+.edit-select:focus {
+  outline: none;
+  border-color: var(--blue-primary);
+  box-shadow: 0 0 0 3px rgba(26, 115, 200, 0.15);
+}
+
+/* ── BUTTONS ── */
+.edit-btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn {
+  flex: 1;
+  padding: 10px;
+  font-size: 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-success { background: #10b981; color: white; box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25); }
+
+.btn-danger { background: #ef4444; color: white; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25); }
+.btn-danger:disabled { background: var(--border); color: var(--text-muted); cursor: not-allowed; box-shadow: none; transform: none; }
+
+.btn-secondary { background: var(--bg); color: var(--text-main); border: 1px solid var(--border); }
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary { background: var(--blue-primary); color: white; box-shadow: 0 2px 8px rgba(26, 115, 200, 0.25); }
+
+/* ── TEMPLATES (DRAG & DROP) ── */
+.edit-tools h3 {
+  font-size: 16px;
+  color: var(--text-main);
+  margin-top: 10px;
+  margin-bottom: 5px;
+}
+.edit-selected-text {
+  font-size: 12px;
   color: var(--text-muted);
+  background: var(--bg);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  border: 1px dashed var(--border);
+}
+
+.template-card {
+  width: 100%;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  gap: 12px;
+  transition: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+.template-card:active {
+  cursor: grabbing;
+}
+.template-icon {
+  font-size: 20px;
+  background: rgba(26, 115, 200, 0.1);
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.template-card p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.template-room { border-left: 4px solid #10b981; }
+.template-kiosk { border-left: 4px solid #3b82f6; width: auto !important; height: auto !important; margin: 0 !important; }
+.template-kiosk .template-icon { background: rgba(59, 130, 246, 0.1); }
+.template-entrance { border-left: 4px solid #f59e0b; width: auto !important; height: auto !important; margin: 0 !important; }
+.template-entrance .template-icon { background: rgba(245, 158, 11, 0.1); }
+
+/* ── CHECKBOX CONTROLS ── */
+.endpoint-title {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+  color: var(--text-main);
+  font-weight: 700;
+}
+.endpoint-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+.endpoint-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.endpoint-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-main);
+  cursor: pointer;
+  position: relative;
+}
+.endpoint-label input {
+  opacity: 0;
+  position: absolute;
+}
+.checkbox-custom {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  background: var(--white);
+  transition: all 0.2s ease;
+  position: relative;
+  display: inline-block;
+}
+.endpoint-label:hover .checkbox-custom {
+  border-color: var(--blue-primary);
+}
+.endpoint-label input:checked + .checkbox-custom {
+  background: var(--blue-primary);
+  border-color: var(--blue-primary);
+}
+.endpoint-label input:checked + .checkbox-custom::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 1px;
+  width: 4px;
+  height: 9px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.edit-page-right-panel .dnd-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 /* Modal Overlay */
@@ -138,26 +367,13 @@
   border: 1.5px solid var(--border);
 }
 
-.confirm-btn.no:hover {
-  background: #f1f5f9;
-  color: var(--text-main);
-  transform: translateY(-1px);
-}
-
 .confirm-btn.yes {
   background: var(--blue-primary);
   color: #ffffff;
   box-shadow: 0 4px 10px rgba(26, 115, 200, 0.2);
 }
 
-.confirm-btn.yes:hover {
-  background: #3b82f6;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 15px rgba(26, 115, 200, 0.35);
-}
-
 .confirm-btn:active {
-  transform: translateY(0);
 }
 
 @keyframes modalEnter {
