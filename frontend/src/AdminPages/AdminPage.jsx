@@ -88,10 +88,10 @@ export default function App() {
       'logout': { id: 'Keluar', en: 'Logout' },
       'search_placeholder': { id: 'Cari poli atau keluhan...', en: 'Search clinic or symptoms...' },
       'output_placeholder': { id: 'Keterangan rute akan muncul di sini', en: 'Destination output text will appear here' },
-      'select_kiosk': { id: 'Pilih Kiosk Awal', en: 'Select Start Kiosk' },
+      'select_kiosk': { id: 'Pilih Kios Awal', en: 'Select Start Kiosk' },
       'select_room': { id: 'Pilih Ruangan Tujuan', en: 'Select Destination Room' },
       'select_floor': { id: 'Pilih Lantai', en: 'Select Floor' },
-      'fail_kiosk_first': { id: 'Silakan pilih Kiosk awal terlebih dahulu.', en: 'Please select a starting Kiosk first.' },
+      'fail_kiosk_first': { id: 'Silakan pilih Kios awal terlebih dahulu.', en: 'Please select a starting Kiosk first.' },
       'searching': { id: 'Mencari rute...', en: 'Searching for route...' },
       'failed': { id: 'Gagal:', en: 'Failed:' },
       'route_found': { id: 'Rute ditemukan!', en: 'Route found!' },
@@ -103,12 +103,12 @@ export default function App() {
       'no': { id: 'Tidak', en: 'No' },
       'yes': { id: 'Iya', en: 'Yes' },
       'back_to_main_floor': { id: 'Kembali ke Lantai Utama', en: 'Back to Main Floor' },
-      'set_kiosk_placeholder': { id: 'Set Kiosk Perangkat...', en: 'Set Device Kiosk...' },
+      'set_kiosk_placeholder': { id: 'Set Kios Perangkat...', en: 'Set Device Kiosk...' },
       'unlock': { id: 'Buka Kunci', en: 'Unlock' },
-      'confirm_lock_title': { id: 'Konfirmasi Kunci Kiosk', en: 'Confirm Kiosk Lock' },
+      'confirm_lock_title': { id: 'Konfirmasi Kunci Kios', en: 'Confirm Kiosk Lock' },
       'are_you_sure_lock': { id: 'Apakah Anda yakin ingin mengunci perangkat ini sebagai', en: 'Are you sure you want to lock this device as' },
       'confirm_unlock_title': { id: 'Konfirmasi Buka Kunci', en: 'Confirm Unlock' },
-      'are_you_sure_unlock': { id: 'Apakah Anda yakin ingin melepas kunci Kiosk perangkat ini?', en: 'Are you sure you want to unlock this device?' }
+      'are_you_sure_unlock': { id: 'Apakah Anda yakin ingin melepas kunci Kios perangkat ini?', en: 'Are you sure you want to unlock this device?' }
     };
     return dict[key] ? dict[key][language] : key;
   };

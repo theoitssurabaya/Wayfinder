@@ -207,7 +207,7 @@ export default function EditPage() {
       'cancel': { id: 'Batal', en: 'Cancel' },
       'drag_drop_info': { id: 'Drag item ke dalam peta', en: 'Drag items into the map' },
       'room': { id: 'Ruangan', en: 'Room' },
-      'kiosk': { id: 'Kiosk', en: 'Kiosk' },
+      'kiosk': { id: 'Kios', en: 'Kiosk' },
       'entrance': { id: 'Pintu Masuk', en: 'Entrance' },
       'exit': { id: 'Pintu Keluar', en: 'Exit' },
       'add_floor': { id: '+ Tambah', en: '+ Add' },
@@ -228,7 +228,7 @@ export default function EditPage() {
       'edit_panel': { id: 'Panel Edit', en: 'Edit Panel' },
       'template_elements': { id: 'Template Elemen', en: 'Element Templates' },
       'template_hint': { id: 'Tarik template langsung ke peta.', en: 'Drag templates directly onto the map.' },
-      'drag_kiosk': { id: 'Tarik Kiosk', en: 'Drag Kiosk' },
+      'drag_kiosk': { id: 'Kios', en: 'Kiosk' },
       'del_element': { id: 'Hapus Elemen (Del)', en: 'Delete Element (Del)' },
       'enter_submap': { id: 'Masuk ke Bagian Dalam (Sub-Map)', en: 'Enter Inner Section (Sub-Map)' },
       'active_endpoint_side': { id: '📍 Sisi Endpoint Aktif', en: '📍 Active Endpoint Side' },
@@ -794,7 +794,7 @@ export default function EditPage() {
           <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "-5px", marginBottom: "15px" }}>{getText('template_hint')}</p>
 
           <div className="dnd-zone" style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-            <h5 style={{ margin: "5px 0 0 0", fontSize: "12px", color: "var(--text-main)" }}>Rooms</h5>
+            <h5 style={{ margin: "5px 0 0 0", fontSize: "12px", color: "var(--text-main)" }}>{language === 'id' ? 'Ruangan' : 'Rooms'}</h5>
             {[
               { name: "Ruangan Pintu Berlawanan", endpoints: ['left', 'right'], color: "#4caf50" },
               { name: "Ruangan 1 Pintu", endpoints: ['top'], color: "#4caf50" },
@@ -834,13 +834,13 @@ export default function EditPage() {
 
             <div style={{ margin: "5px 0", borderTop: "1px solid var(--border)" }}></div>
 
-            <h5 style={{ margin: "0", fontSize: "12px", color: "var(--text-main)" }}>Kiosk</h5>
+            <h5 style={{ margin: "0", fontSize: "12px", color: "var(--text-main)" }}>{language === 'id' ? 'Kios' : 'Kiosk'}</h5>
             <div
               draggable
               onDragStart={(e) => {
                 e.dataTransfer.setData("text/plain", JSON.stringify({
                   type: "new-kiosk",
-                  defaultName: "Kiosk Baru",
+                  defaultName: "Kios Baru",
                   defaultGridWidth: 2,
                   defaultGridHeight: 2
                 }));
@@ -850,7 +850,7 @@ export default function EditPage() {
                 const newElements = [...placedElements, {
                   id: newId, type: 'kiosk', floor: activeEditFloor,
                   x: 200, y: 200, width: GRID_SIZE * 2, height: GRID_SIZE * 2,
-                  name: "Kiosk Baru"
+                  name: "Kios Baru"
                 }];
                 setPlacedElements(newElements);
                 saveHistory(newElements);
@@ -863,7 +863,7 @@ export default function EditPage() {
 
             <div style={{ margin: "5px 0", borderTop: "1px solid var(--border)" }}></div>
 
-            <h5 style={{ margin: "0", fontSize: "12px", color: "var(--text-main)" }}>Entrance Door</h5>
+            <h5 style={{ margin: "0", fontSize: "12px", color: "var(--text-main)" }}>{language === 'id' ? 'Pintu Masuk' : 'Entrance Door'}</h5>
             <div
               draggable
               onDragStart={(e) => {
