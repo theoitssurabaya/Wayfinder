@@ -553,6 +553,29 @@ body.dark-mode .kiosk-list-item.locked {
   color: var(--white);
 }
 
+.kiosk-action-btn.in-use {
+  background: #f59e0b;
+  color: var(--white);
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.kiosk-action-btn.lock:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.kiosk-list-item.locked-other {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+body.dark-mode .kiosk-list-item.locked-other {
+  background: rgba(245, 158, 11, 0.1);
+  border-left-color: #f59e0b;
+}
+
 .empty-state {
   text-align: center;
   font-size: 0.85rem;

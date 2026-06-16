@@ -321,13 +321,6 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id", cur
             return {"status": "success", "target_id": exact_matches[0], "confidence_score": 1.0}
         else:
             from app.core import state as waypoint_graph
-            # Prioritize current_floor if given
-            if current_floor:
-                for m_id in exact_matches:
-                    m_room = waypoint_graph.RUANGAN_GRID.get(m_id)
-                    if m_room and m_room.get("floor") == current_floor:
-                        return {"status": "success", "target_id": m_id, "confidence_score": 1.0}
-            
             if start_node_id:
                 start_room = waypoint_graph.RUANGAN_GRID.get(start_node_id)
                 if start_room:
@@ -339,12 +332,25 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id", cur
                     for m_id in exact_matches:
                         m_room = waypoint_graph.RUANGAN_GRID.get(m_id)
                         if not m_room: continue
-                        floor_penalty = 0 if m_room.get("floor", "Lantai 1") == start_floor else 10000
+                        
+                        # Prioritaskan current_floor jika user sedang melihat lantai tertentu,
+                        # jika tidak, prioritaskan lantai tempat kiosk berada.
+                        target_floor = current_floor if current_floor else start_floor
+                        floor_penalty = 0 if m_room.get("floor", "Lantai 1") == target_floor else 10000
+                        
                         jarak = abs(start_x - m_room.get("x", 0)) + abs(start_y - m_room.get("y", 0)) + floor_penalty
                         if jarak < terbaik_jarak:
                             terbaik_jarak = jarak
                             terbaik_id = m_id
                     return {"status": "success", "target_id": terbaik_id, "confidence_score": 1.0}
+            
+            # Fallback jika tidak ada start_node_id
+            if current_floor:
+                for m_id in exact_matches:
+                    m_room = waypoint_graph.RUANGAN_GRID.get(m_id)
+                    if m_room and m_room.get("floor") == current_floor:
+                        return {"status": "success", "target_id": m_id, "confidence_score": 1.0}
+
             return {"status": "success", "target_id": exact_matches[0], "confidence_score": 1.0}
 
     if not input_bersih:
@@ -393,14 +399,6 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id", cur
             terbaik_id = daftar_nama_ruangan[kandidat_indeks[0]]
         else:
             from app.core import state as waypoint_graph
-            # Prioritize current_floor if given
-            if current_floor:
-                for idx in kandidat_indeks:
-                    kandidat_id = daftar_nama_ruangan[idx]
-                    kandidat_room = waypoint_graph.RUANGAN_GRID.get(kandidat_id)
-                    if kandidat_room and kandidat_room.get("floor") == current_floor:
-                        return {"status": "success", "target_id": kandidat_id, "confidence_score": float(max_score)}
-
             if start_node_id:
                 start_room = waypoint_graph.RUANGAN_GRID.get(start_node_id)
                 if start_room:
@@ -419,8 +417,11 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id", cur
                         k_x = kandidat_room.get("x", 0)
                         k_y = kandidat_room.get("y", 0)
                         
-                        # Penalty besar jika lantai berbeda (10000)
-                        floor_penalty = 0 if k_floor == start_floor else 10000 
+                        # Prioritaskan current_floor jika user sedang melihat lantai tertentu,
+                        # jika tidak, prioritaskan lantai tempat kiosk berada.
+                        target_floor = current_floor if current_floor else start_floor
+                        floor_penalty = 0 if k_floor == target_floor else 10000 
+                        
                         jarak_manhattan = abs(start_x - k_x) + abs(start_y - k_y)
                         total_jarak = jarak_manhattan + floor_penalty
                         
@@ -429,7 +430,17 @@ def cari_target_ruangan(input_pengunjung, start_node_id=None, language="id", cur
                             terbaik_id = kandidat_id
                 
             if not terbaik_id:
-                terbaik_id = daftar_nama_ruangan[kandidat_indeks[0]]
+                # Fallback jika tidak ada start_node_id, minimal utamakan current_floor
+                if current_floor:
+                    for idx in kandidat_indeks:
+                        kandidat_id = daftar_nama_ruangan[idx]
+                        kandidat_room = waypoint_graph.RUANGAN_GRID.get(kandidat_id)
+                        if kandidat_room and kandidat_room.get("floor") == current_floor:
+                            terbaik_id = kandidat_id
+                            break
+                            
+                if not terbaik_id:
+                    terbaik_id = daftar_nama_ruangan[kandidat_indeks[0]]
     if terbaik_id:
         return {
             "status": "success",

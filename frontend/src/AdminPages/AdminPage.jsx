@@ -105,6 +105,7 @@ export default function App() {
       'yes': { id: 'Iya', en: 'Yes' },
       'back_to_main_floor': { id: 'Kembali ke Lantai Utama', en: 'Back to Main Floor' },
       'set_kiosk_placeholder': { id: 'Set Kios Perangkat...', en: 'Set Device Kiosk...' },
+      'lock': { id: 'Kunci', en: 'Lock' },
       'unlock': { id: 'Buka Kunci', en: 'Unlock' },
       'confirm_lock_title': { id: 'Konfirmasi Kunci Kios', en: 'Confirm Kiosk Lock' },
       'are_you_sure_lock': { id: 'Apakah Anda yakin ingin mengunci perangkat ini sebagai', en: 'Are you sure you want to lock this device as' },
@@ -206,12 +207,11 @@ export default function App() {
       const loadedLogs = [];
       logSnap.forEach((docSnap) => {
         const data = docSnap.data();
-        let timeString = "";
+        let timeObj = null;
         if (data.timestamp) {
-          const date = data.timestamp.toDate();
-          timeString = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          timeObj = data.timestamp.toDate();
         }
-        loadedLogs.push({ id: docSnap.id, time: timeString, ...data });
+        loadedLogs.push({ id: docSnap.id, timeObj, ...data });
       });
       setActivities(loadedLogs);
     });
@@ -562,27 +562,32 @@ export default function App() {
             <div className="kiosk-list-container">
               {kiosks.filter(k => !k.name?.toLowerCase().includes('pintu')).length > 0 ? 
                 kiosks.filter(k => !k.name?.toLowerCase().includes('pintu')).map(k => {
-                const isLocked = lockedKiosk === k.id;
+                const isLockedByMe = lockedKiosk === k.id;
+                const isLockedByOther = !isLockedByMe && k.isLocked === true;
                 return (
-                  <div key={k.id} className={`kiosk-list-item ${isLocked ? 'locked' : ''}`}>
+                  <div key={k.id} className={`kiosk-list-item ${isLockedByMe ? 'locked' : ''} ${isLockedByOther ? 'locked-other' : ''}`}>
                     <div className="kiosk-info">
                       <span className="kiosk-name">{translateName(k.name, language, k.name_en)}</span>
                       <span className="kiosk-floor">{translateName(k.floor, language)}</span>
                     </div>
                     <div className="kiosk-action">
-                      {isLocked ? (
+                      {isLockedByMe ? (
                         <button className="kiosk-action-btn unlock" onClick={() => {
                           setKioskToLock(k.id);
                           setIsUnlockConfirmOpen(true);
                         }}>
                           {getText('unlock')}
                         </button>
+                      ) : isLockedByOther ? (
+                        <button className="kiosk-action-btn in-use" disabled>
+                          {language === 'id' ? 'Digunakan' : 'In Use'}
+                        </button>
                       ) : (
                         <button className="kiosk-action-btn lock" onClick={() => {
                           setKioskToLock(k.id);
                           setIsLockConfirmOpen(true);
-                        }}>
-                          Lock
+                        }} disabled={!!lockedKiosk}>
+                          {getText('lock')}
                         </button>
                       )}
                     </div>
@@ -600,7 +605,20 @@ export default function App() {
             <div className="activity-list">
               {activities.length > 0 ? activities.map((act) => (
                 <div key={act.id} className="activity-item">
-                  <div className="activity-time">{act.time || "--:--"}</div>
+                  <div className="activity-time" style={{ display: "flex", flexDirection: "column", fontSize: "0.85em", opacity: 0.8, marginBottom: "4px", gap: "2px" }}>
+                    {act.timeObj ? (
+                      <>
+                        <span style={{ fontWeight: "600", color: "var(--text-main)" }}>
+                          {act.timeObj.toLocaleDateString(language === 'id' ? 'id-ID' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                        <span>
+                          {act.timeObj.toLocaleTimeString(language === 'id' ? 'id-ID' : 'en-US', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </>
+                    ) : (
+                      <span>--:--</span>
+                    )}
+                  </div>
                   <div className="activity-details">
                     <div className="activity-title">{act.title ? act.title[language] : ""}</div>
                     <div className="activity-desc">{act.desc ? act.desc[language] : ""}</div>

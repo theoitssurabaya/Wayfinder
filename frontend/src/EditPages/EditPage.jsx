@@ -653,7 +653,7 @@ export default function EditPage() {
       <header className="edit-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <img src={LogoImg} alt="Wayfinder Logo" style={{ height: '28px', width: 'auto', filter: isDarkMode ? "brightness(0.1)" : "none" }} />
-          <span className="edit-page-logo">Wayfinder - {getText('edit_mode')}</span>
+          <span className="edit-page-logo">Wayfinder</span>
         </div>
 
         <div className="header-actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>

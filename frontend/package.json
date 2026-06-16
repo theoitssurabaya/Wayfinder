@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite --host\" \"cd ../backend && python -m uvicorn main:app --host 0.0.0.0 --reload\"",
+    "dev": "concurrently \"vite --host\" \"cd ../backend && ../venv/bin/python -m uvicorn main:app --host 0.0.0.0 --reload\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"

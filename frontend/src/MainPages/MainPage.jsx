@@ -228,6 +228,7 @@ export default function App() {
     if (lockId) {
       localStorage.setItem("locked_kiosk_id", lockId);
       setLocation(lockId);
+      setIsKioskLocked(true);
       if (language === 'en') {
         alert(`This device is now permanently locked as Kiosk: ${lockId}`);
       } else {
@@ -596,14 +597,14 @@ export default function App() {
           </div>
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <label className="theme-switch" title={isDarkMode ? "Light Mode" : "Dark Mode"}>
-              <input 
-                type="checkbox" 
-                checked={isDarkMode} 
+              <input
+                type="checkbox"
+                checked={isDarkMode}
                 onChange={() => {
                   const newMode = !isDarkMode;
                   setIsDarkMode(newMode);
                   localStorage.setItem('theme', newMode ? 'dark' : 'light');
-                }} 
+                }}
               />
               <span className="slider">
                 <span className="slider-icon">🌙</span>
@@ -615,8 +616,8 @@ export default function App() {
               onChange={handleLanguageChange}
               style={{ background: "transparent", border: "1px solid white", color: "white", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", outline: "none" }}
             >
-              <option value="id" style={{color: "black"}}>🇮🇩 ID</option>
-              <option value="en" style={{color: "black"}}>🇬🇧 EN</option>
+              <option value="id" style={{ color: "black" }}>🇮🇩 ID</option>
+              <option value="en" style={{ color: "black" }}>🇬🇧 EN</option>
             </select>
             <button className="header-login-btn Onclick" onClick={() => { setIsLoginOpen(true); setErrorMsg(""); setUsername(""); setPassword(""); }}>
               <LoginIcon />
@@ -725,14 +726,14 @@ export default function App() {
         {isMobileMode && (
           <div style={{ position: "absolute", top: "15px", right: "15px", zIndex: 1000, display: "flex", gap: "8px" }}>
             <label className="theme-switch" title={isDarkMode ? "Light Mode" : "Dark Mode"}>
-              <input 
-                type="checkbox" 
-                checked={isDarkMode} 
+              <input
+                type="checkbox"
+                checked={isDarkMode}
                 onChange={() => {
                   const newMode = !isDarkMode;
                   setIsDarkMode(newMode);
                   localStorage.setItem('theme', newMode ? 'dark' : 'light');
-                }} 
+                }}
               />
               <span className="slider">
                 <span className="slider-icon">🌙</span>
@@ -744,8 +745,8 @@ export default function App() {
               onChange={handleLanguageChange}
               style={{ background: "var(--white)", border: "1px solid var(--border)", color: "var(--text-main)", padding: "8px 12px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold", boxShadow: "var(--shadow-md)", outline: "none" }}
             >
-              <option value="id" style={{color: "black"}}>🇮🇩 ID</option>
-              <option value="en" style={{color: "black"}}>🇬🇧 EN</option>
+              <option value="id" style={{ color: "black" }}>🇮🇩 ID</option>
+              <option value="en" style={{ color: "black" }}>🇬🇧 EN</option>
             </select>
           </div>
         )}
@@ -825,13 +826,13 @@ export default function App() {
                         const rawId = e.target.value;
                         const selectedRoom = rooms.find(r => r.id === rawId);
                         if (selectedRoom) {
-                           let disp = translateName(selectedRoom.name, language, selectedRoom.name_en);
-                           if (selectedRoom.floor.startsWith("submap_")) {
-                             const pId = selectedRoom.floor.replace("submap_", "");
-                             const pRoom = rooms.find(r => r.id === pId);
-                             if (pRoom) disp += " " + translateName(pRoom.name, language, pRoom.name_en);
-                           }
-                           setSearch(disp);
+                          let disp = translateName(selectedRoom.name, language, selectedRoom.name_en);
+                          if (selectedRoom.floor.startsWith("submap_")) {
+                            const pId = selectedRoom.floor.replace("submap_", "");
+                            const pRoom = rooms.find(r => r.id === pId);
+                            if (pRoom) disp += " " + translateName(pRoom.name, language, pRoom.name_en);
+                          }
+                          setSearch(disp);
                         }
                         executeSearch(location, rawId);
                       }}
