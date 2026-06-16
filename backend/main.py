@@ -10,7 +10,6 @@ from app.services.nlp_service import cari_target_ruangan, latih_ulang_nlp
 from app.services.a_star_service import cari_rute_grid
 from app.models.schemas import RoomModel, RoomUpdateModel
 from loguru import logger
-from deep_translator import GoogleTranslator
 
 # Lock global untuk mencegah race condition dari Firebase thread pool
 sync_lock = threading.Lock()
@@ -122,20 +121,14 @@ class RequestTranslate(BaseModel):
 
 @app.post("/api/translate")
 def translate_names(request: RequestTranslate):
-    en_translator = GoogleTranslator(source='auto', target='en')
-    id_translator = GoogleTranslator(source='auto', target='id')
     translations = {}
     for name in request.names:
         if not name:
             continue
-        try:
-            translations[name] = {
-                "id": id_translator.translate(name),
-                "en": en_translator.translate(name)
-            }
-        except Exception as e:
-            logger.error(f"Gagal menerjemahkan {name}: {str(e)}")
-            translations[name] = {"id": name, "en": name}
+        translations[name] = {
+            "id": name,
+            "en": name
+        }
     return {
         "status": "success",
         "translations": translations

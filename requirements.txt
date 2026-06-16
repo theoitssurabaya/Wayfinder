@@ -8,4 +8,3 @@ torch
 numpy
 python-dotenv
 loguru
-deep-translator
