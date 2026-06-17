@@ -810,14 +810,14 @@ export default function EditPage() {
               )}
             </div>
 
-            <div className="edit-btn-group" style={{ marginBottom: "10px" }}>
+            <div className="edit-btn-group" style={{ marginBottom: "5px" }}>
               <button onClick={handleAddFloor} className="edit-btn btn-success">{getText('add_floor')}</button>
               <button onClick={handleRenameFloor} className="edit-btn btn-primary">{getText('rename_floor')}</button>
               <button onClick={handleDeleteFloor} className="edit-btn btn-danger">{getText('del_floor')}</button>
             </div>
           </div>
 
-          <div className="edit-btn-group" style={{ marginBottom: "15px" }}>
+          <div className="edit-btn-group" style={{ marginBottom: "10px" }}>
             <button
               onClick={handleUndo}
               disabled={historyStep <= 0}
@@ -842,14 +842,15 @@ export default function EditPage() {
               {selectedId ? `${getText('selected')}: ${translateName(placedElements.find(el => el.id === selectedId)?.name || "Kiosk", language)}` : getText('no_element_selected')}
             </p>
             <div style={{ display: "flex", gap: "10px", marginBottom: "10px" }}>
-              <button
-                className="edit-btn btn-danger delete-btn"
-                onClick={deleteSelectedElement}
-                disabled={!selectedId}
-                style={{ flex: 1 }}
-              >
-                {getText('del_element')}
-              </button>
+              {selectedId && (
+                <button
+                  className="edit-btn btn-danger delete-btn"
+                  onClick={deleteSelectedElement}
+                  style={{ flex: 1 }}
+                >
+                  {getText('del_element')}
+                </button>
+              )}
 
               {selectedId && placedElements.find(el => el.id === selectedId)?.type === 'room' && (
                 <button
@@ -935,10 +936,10 @@ export default function EditPage() {
             })()}
           </div>
 
-          <hr style={{ margin: "20px 0", border: "0.5px solid var(--border)" }} />
+          <hr style={{ margin: "10px 0", border: "0.5px solid var(--border)" }} />
 
           <h3>{getText('template_elements')}</h3>
-          <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "-5px", marginBottom: "15px" }}>{getText('template_hint')}</p>
+          <p style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "-5px", marginBottom: "8px" }}>{getText('template_hint')}</p>
           <div className="dnd-zone">
             <h5 style={{ margin: "5px 0 10px 0", fontSize: "12px", color: "var(--text-main)", fontWeight: "700" }}>{language === 'id' ? 'Ruangan' : 'Rooms'}</h5>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>

@@ -64,10 +64,12 @@ export default function App() {
 
   const addActivityLog = async (titleId, titleEn, descId, descEn) => {
     try {
+      const userAgent = navigator.userAgent;
       await addDoc(collection(db, "Logs"), {
         timestamp: serverTimestamp(),
         title: { id: titleId, en: titleEn },
-        desc: { id: descId, en: descEn }
+        desc: { id: descId, en: descEn },
+        device: userAgent
       });
     } catch (e) {
       console.error("Failed to add activity log", e);
@@ -622,6 +624,11 @@ export default function App() {
                   <div className="activity-details">
                     <div className="activity-title">{act.title ? act.title[language] : ""}</div>
                     <div className="activity-desc">{act.desc ? act.desc[language] : ""}</div>
+                    {act.device && (
+                      <div className="activity-device" style={{ fontSize: "0.75em", opacity: 0.7, marginTop: "4px" }}>
+                        💻 {act.device}
+                      </div>
+                    )}
                   </div>
                 </div>
               )) : (
