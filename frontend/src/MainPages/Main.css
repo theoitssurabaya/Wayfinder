@@ -29,7 +29,7 @@
   cursor: pointer;
   font-size: 0.88rem;
   font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
+  font-weight: bold;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -177,7 +177,7 @@
 }
 
 .nav-header {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-weight: 600;
   color: var(--blue-primary);
   margin-bottom: 5px;
@@ -398,7 +398,7 @@
 .login-modal h2 {
   margin-bottom: 25px;
   text-align: center;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'DM Sans', sans-serif;
 }
 
 .input-group {
@@ -529,7 +529,7 @@
   font-size: 1.5rem;
   font-weight: 600;
   color: var(--text-main);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   margin-bottom: 4px;
 }
 
@@ -776,7 +776,6 @@
   overflow: hidden;
   max-height: 800px;
   flex: none;
-  min-height: min-content;
   opacity: 1;
   transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
               opacity 0.25s ease,

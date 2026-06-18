@@ -50,7 +50,7 @@ export default function App() {
   const [isLockConfirmOpen, setIsLockConfirmOpen] = useState(false);
   const [isUnlockConfirmOpen, setIsUnlockConfirmOpen] = useState(false);
   const [kiosks,      setKiosks]      = useState([]);
-  const [rooms,       setRooms]       = useState([]); // STATE BARU: Daftar Ruangan
+  const [rooms,       setRooms]       = useState([]);
   const [pathData,    setPathData]    = useState([]);
   const [targetRoomName, setTargetRoomName] = useState("");
   const [navigationSteps, setNavigationSteps] = useState([]);
@@ -112,7 +112,9 @@ export default function App() {
       'confirm_lock_title': { id: 'Konfirmasi Kunci Kios', en: 'Confirm Kiosk Lock' },
       'are_you_sure_lock': { id: 'Apakah Anda yakin ingin mengunci perangkat ini sebagai', en: 'Are you sure you want to lock this device as' },
       'confirm_unlock_title': { id: 'Konfirmasi Buka Kunci', en: 'Confirm Unlock' },
-      'are_you_sure_unlock': { id: 'Apakah Anda yakin ingin melepas kunci Kios perangkat ini?', en: 'Are you sure you want to unlock this device?' }
+      'are_you_sure_unlock': { id: 'Apakah Anda yakin ingin melepas kunci Kios perangkat ini?', en: 'Are you sure you want to unlock this device?' },
+      'fail_lock_kiosk': { id: 'Gagal mengunci kios di database.', en: 'Failed to lock kiosk in database.' },
+      'fail_unlock_kiosk': { id: 'Gagal update DB saat unlock', en: 'Failed to update DB on unlock' }
     };
     return dict[key] ? dict[key][language] : key;
   };
@@ -129,7 +131,7 @@ export default function App() {
     if (navigationSteps.length > 0) {
       executeSearch(location, translatedSearch, newLang, activeStepIndex >= 0 ? activeStepIndex : 0);
     } else if (outputText) {
-      setOutputText(""); // Clear stale output text
+      setOutputText("");
     }
   };
 
@@ -360,7 +362,7 @@ export default function App() {
       } else {
         const roomName = translateName(data.data_target.nama_ruangan, currentLang, data.data_target.nama_ruangan_en);
         setTargetRoomName(roomName);
-        setSearch(roomName); // Update dropdown to show the matched NLP room
+        setSearch(roomName);
         setPathData(data.jalur_koordinat);
         setNavigationSteps(data.langkah_navigasi);
         setActiveStepIndex(resumeStepIndex);
@@ -416,7 +418,7 @@ export default function App() {
       setKioskToLock("");
     } catch (e) {
       console.error(e);
-      alert("Gagal mengunci kios di database.");
+      alert(getText('fail_lock_kiosk'));
     }
   };
 
@@ -435,7 +437,7 @@ export default function App() {
         const kioskNameEn = kioskInfo?.name ? translateName(kioskInfo.name, 'en', kioskInfo.name_en) : lockedKiosk;
         await addActivityLog("Kios Dibuka Kunci", "Kiosk Unlocked", `Melepas kunci ${kioskNameId}`, `Unlocked ${kioskNameEn}`);
       } catch (e) {
-        console.error("Gagal update DB saat unlock", e);
+        console.error(getText('fail_unlock_kiosk'), e);
       }
     }
     localStorage.removeItem("locked_kiosk_id");
@@ -543,7 +545,7 @@ export default function App() {
       <div className="main-layout">
         <aside className="left-panel admin-sidebar">
           
-          {/* OPSI 2: MINI ANALYTICS */}
+          {/* OPSI 2: ANALITIK MINI */}
           <div className="admin-widget">
             <h3>{language === 'id' ? 'Statistik Sistem' : 'System Analytics'}</h3>
             <div className="stat-grid">
@@ -558,7 +560,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* OPSI 1: KIOSK MANAGER */}
+          {/* OPSI 1: MANAJER KIOS */}
           <div className="admin-widget kiosk-manager-widget">
             <h3>{language === 'id' ? 'Manajemen Kios' : 'Kiosk Manager'}</h3>
             <div className="kiosk-list-container">
@@ -601,7 +603,7 @@ export default function App() {
             </div>
           </div>
 
-          {/* OPSI 3: ACTIVITY LOG (MOCK) */}
+          {/* OPSI 3: LOG AKTIVITAS (MOCK) */}
           <div className="admin-widget activity-log-widget">
             <h3>{language === 'id' ? 'Aktivitas Terbaru' : 'Recent Activity'}</h3>
             <div className="activity-list">
@@ -626,7 +628,7 @@ export default function App() {
                     <div className="activity-desc">{act.desc ? act.desc[language] : ""}</div>
                     {act.device && (
                       <div className="activity-device" style={{ fontSize: "0.75em", opacity: 0.7, marginTop: "4px" }}>
-                        💻 {act.device}
+                        {act.device}
                       </div>
                     )}
                   </div>
@@ -636,7 +638,7 @@ export default function App() {
               )}
             </div>
           </div>
-          {/* DYNAMIC NAVIGATION TEXT BOX */}
+          {/* KOTAK TEKS NAVIGASI DINAMIS */}
           {(outputText || navigationSteps.length > 0) && (
             <div className="destination-output-dynamic">
               {navigationSteps.length > 0 ? (
@@ -662,7 +664,7 @@ export default function App() {
         </aside>
         
         <main className="map-panel" style={{ position: "relative" }}>
-          {/* VERTICAL FLOOR SCRUBBER (OPTION 1) */}
+          {/* KONTROL LANTAI VERTIKAL (OPSI 1) */}
           <div className="vertical-scrubber-wrapper">
             {(() => {
               const visibleFloors = floors.filter(f => !f.startsWith("submap_"));

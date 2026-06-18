@@ -153,7 +153,7 @@ body.dark-mode .vertical-scrubber-wrapper {
   border: none;
   background: rgba(255, 255, 255, 0.8);
   color: var(--text-main);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   font-weight: 700;
   font-size: 1rem;
   cursor: pointer;

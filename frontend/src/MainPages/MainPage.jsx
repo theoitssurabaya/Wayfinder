@@ -179,10 +179,12 @@ export default function App() {
       'route_found': { id: 'Rute ditemukan!', en: 'Route found!' },
       'towards': { id: 'Menuju:', en: 'Towards:' },
       'no_nav_text': { id: 'Teks navigasi tidak tersedia.', en: 'Navigation text is not available.' },
-      'admin_login_title': { id: 'HALAMAN LOGIN ADMIN', en: 'ADMIN LOGIN PAGE' },
+      'admin_login_title': { id: 'Halaman Login', en: 'Login Page' },
       'username': { id: 'Email Pengguna', en: 'Email' },
       'password': { id: 'Kata Sandi', en: 'Password' },
-      'login_btn': { id: 'MASUK', en: 'LOGIN' }
+      'login_btn': { id: 'MASUK', en: 'LOGIN' },
+      'admin_login_subtitle': { id: 'Silahkan masukkan akun administrator Anda', en: 'Please enter your administrator account' },
+      'email_placeholder': { id: 'Contoh: admin@email.com', en: 'Example: admin@email.com' }
     };
     return dict[key] ? dict[key][language] : key;
   };
@@ -212,7 +214,7 @@ export default function App() {
     if (navigationSteps.length > 0 && !isNavFinished) {
       executeSearch(location, translatedSearch, newLang, activeStepIndex >= 0 ? activeStepIndex : 0);
     } else if (outputText) {
-      setOutputText(""); // Clear stale output text
+      setOutputText("");
     }
   };
 
@@ -222,7 +224,7 @@ export default function App() {
     const lockId = params.get("set_kiosk");
     const unlock = params.get("unlock_kiosk");
 
-    // Mobile Handoff Params
+    // Parameter Mobile Handoff
     const start = params.get("start");
     const end = params.get("end");
     const mobile = params.get("mobile");
@@ -236,7 +238,7 @@ export default function App() {
       setIsMobileMode(true);
       setLocation(start);
       setSearch(end);
-      // Auto-trigger search
+
       executeSearch(start, end);
     }
 
@@ -312,13 +314,13 @@ export default function App() {
       roomSnap.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.floor) foundFloors.add(data.floor);
-        // Hanya masukkan ruangan yang sudah diberi nama ke dalam dropdown
+
         if (data.name && data.name !== "Tanpa Nama" && data.name.toLowerCase() !== "pintu masuk") {
           loadedRooms.push({ id: docSnap.id, name: data.name, name_en: data.name_en, floor: data.floor || "Lantai 1" });
         }
       });
 
-      // Urutkan ruangan berdasarkan abjad (A-Z) agar rapi
+
       loadedRooms.sort((a, b) => a.name.localeCompare(b.name));
       setRooms(loadedRooms);
 
@@ -456,7 +458,7 @@ export default function App() {
               setIsNavFinished(false);
             }, 10000);
           } else {
-            playNext(index + 1); // Panggil urutan selanjutnya hanya setelah yang ini selesai
+            playNext(index + 1);
           }
         };
 
@@ -526,7 +528,7 @@ export default function App() {
       } else {
         const roomName = translateName(data.data_target.nama_ruangan, currentLang, data.data_target.nama_ruangan_en);
         setTargetRoomName(roomName);
-        setSearch(roomName); // Update dropdown to show the translated room name
+        setSearch(roomName);
         setPathData(data.jalur_koordinat);
         setNavigationSteps(data.langkah_navigasi);
         setActiveStepIndex(resumeStepIndex);
@@ -654,7 +656,7 @@ export default function App() {
                 </svg>
               </div>
               <h2>{getText('admin_login_title')}</h2>
-              <p className="login-subtitle">Silahkan masukkan akun administrator Anda</p>
+              <p className="login-subtitle">{getText('admin_login_subtitle')}</p>
             </div>
 
             {errorMsg && (
@@ -678,7 +680,7 @@ export default function App() {
                   </svg>
                   <input
                     type="text"
-                    placeholder="Contoh: admin@email.com"
+                    placeholder={getText('email_placeholder')}
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleLogin()}
@@ -780,7 +782,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="route-planner-inputs">
-                  {/* KIOSK DROPDOWN ATAU LOCKED KIOSK INFO */}
+                  {/* DROPDOWN KIOSK ATAU INFO KIOSK TERKUNCI */}
                   {isKioskLocked ? (
                     <div className="dropdown-wrapper kiosk-input" style={{ padding: "12px", background: "var(--white)", borderRadius: "8px", border: "1.5px solid var(--border)", color: "var(--text-main)", fontWeight: "600", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
                       {getText('you_are_here')} {kiosks.find(k => k.id === location)?.name || location}
@@ -810,7 +812,7 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* SEARCH & ROOM DROPDOWN */}
+                  {/* PENCARIAN & DROPDOWN RUANGAN */}
                   <div className="search-wrapper destination-input" style={{ position: "relative" }}>
                     <form onSubmit={(e) => { e.preventDefault(); executeSearch(location, search); }} style={{ width: "100%", margin: 0 }}>
                       <input
@@ -827,7 +829,7 @@ export default function App() {
                       <MicIcon isListening={isListening} />
                     </div>
 
-                    {/* Invisible Dropdown Over Chevron */}
+                    {/* Dropdown Tak Terlihat di Atas Chevron */}
                     <select
                       className="dropdown-select route-select"
                       style={{
@@ -882,7 +884,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* QUICK ACTIONS — hanya tampil saat belum ada tujuan dipilih */}
+              {/* AKSI CEPAT — hanya tampil saat belum ada tujuan dipilih */}
               <div className={`quick-actions-section${search.trim() ? ' quick-actions-hidden' : ''}`}>
                 <p className="quick-actions-label">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
@@ -923,7 +925,7 @@ export default function App() {
             </>
           )}
 
-          {/* DYNAMIC NAVIGATION TEXT BOX */}
+          {/* KOTAK TEKS NAVIGASI DINAMIS */}
           {(outputText || navigationSteps.length > 0) && (
             <div className={`destination-output-dynamic ${isMobileMode ? 'mobile-nav-box' : ''}`}>
               {navigationSteps.length > 0 ? (
@@ -1034,7 +1036,7 @@ export default function App() {
 
         <main className="map-panel" style={{ position: "relative" }}>
 
-          {/* VERTICAL FLOOR SCRUBBER (OPTION 1) */}
+          {/* KONTROL LANTAI VERTIKAL (OPSI 1) */}
           <div className="vertical-scrubber-wrapper">
             {(() => {
               const visibleFloors = floors.filter(f => {
@@ -1118,15 +1120,15 @@ export default function App() {
                   selectedKiosk={location}
                   isDarkMode={isDarkMode}
                   onRoomClick={(room, e) => {
-                    if (isMobileMode) return; // Disable click on mobile handoff mode
+                    if (isMobileMode) return;
                     const hasSubmap = floors.includes(`submap_${room.id}`);
                     if (hasSubmap) {
-                      // Tampilkan modal pilihan
+
                       const clientX = e?.evt?.clientX ?? window.innerWidth / 2;
                       const clientY = e?.evt?.clientY ?? window.innerHeight / 2;
                       setRoomActionModal({ room, hasSubmap: true, x: clientX, y: clientY });
                     } else {
-                      // Langsung navigasi
+
                       const roomName = translateName(room.name, language, room.name_en);
                       setSearch(roomName);
                       if (location) {
@@ -1170,7 +1172,7 @@ export default function App() {
                 pointerEvents: "auto"
               }}
             >
-              {/* Header */}
+              {/* Bagian Atas */}
               <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
                 <div style={{
                   width: "36px", height: "36px", borderRadius: "10px",
@@ -1199,12 +1201,12 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Divider */}
+              {/* Pemisah */}
               <div style={{ height: "1px", background: isDarkMode ? "#334155" : "#e2e8f0", marginBottom: "12px" }} />
 
-              {/* Action Buttons */}
+              {/* Tombol Aksi */}
               <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                {/* Navigate Button */}
+                {/* Tombol Navigasi */}
                 <button
                   onClick={() => {
                     const room = roomActionModal.room;
@@ -1235,7 +1237,7 @@ export default function App() {
                   </div>
                 </button>
 
-                {/* Enter Submap Button */}
+                {/* Tombol Masuk Submap */}
                 {roomActionModal.hasSubmap && (
                   <button
                     onClick={() => {

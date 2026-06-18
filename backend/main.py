@@ -87,7 +87,7 @@ def sinkronisasi_peta(data):
                 
                 logger.debug(f" -> Load: [{room_id}] '{room_name}' (X:{item['grid_x']}, Y:{item['grid_y']})")
 
-        # Append parent room names to submap nodes for better NLP matching
+        # Tambahkan nama ruangan induk ke node submap untuk pencocokan NLP yang lebih baik
         for room_id, room in temp_ruangan.items():
             if room["floor"].startswith("submap_"):
                 parent_id = room["floor"].replace("submap_", "")
@@ -95,7 +95,7 @@ def sinkronisasi_peta(data):
                 if parent_room:
                     parent_name = parent_room["name"]
                     kunci = data_nlp_baru.get(room_id, [])
-                    # Append the combination (e.g., "Pintu Masuk Poli Gigi")
+                    # Tambahkan kombinasi nama (contoh: "Pintu Masuk Poli Gigi")
                     kunci.append(f"{room['name']} {parent_name}")
 
         waypoint_graph.RUANGAN_GRID.clear()

@@ -110,9 +110,9 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
     const availableHeight = mapSize.height - padding * 2;
     const scaleX = availableWidth / mapBounds.width;
     const scaleY = availableHeight / mapBounds.height;
-    const scale = Math.min(scaleX, scaleY, 2); // Limit maximum scale to 2x to avoid excessive stretching
+    const scale = Math.min(scaleX, scaleY, 2); // Batasi skala maksimum ke 2x untuk menghindari peregangan berlebihan
 
-    // Center the map bounds in the stage
+    // Pusatkan batas peta di stage
     const x = (mapSize.width - mapBounds.width * scale) / 2 - mapBounds.x * scale;
     const y = (mapSize.height - mapBounds.height * scale) / 2 - mapBounds.y * scale;
 
@@ -288,7 +288,7 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
             <Group scaleX={scaleAndOffset.scale} scaleY={scaleAndOffset.scale} x={scaleAndOffset.x} y={scaleAndOffset.y}>
               {showGrid && drawGrid()}
 
-              {/* Visual Bounding Box (Warp/Wrap line) */}
+              {/* Kotak Pembatas Visual (Garis Warp/Wrap) */}
               {showBorder && mapBounds && (
                 <Rect
                   x={mapBounds.x}
@@ -316,10 +316,10 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
                   const longestWordLen = Math.max(...textContent.split(' ').map(w => w.length), 1);
                   const actualUsableWidth = Math.max(10, room.width - 12);
 
-                  // Adjust font size calculation for better readability and word wrapping
+                  // Sesuaikan ukuran font untuk keterbacaan dan word wrapping yang lebih baik
                   const maxFontSizeWidth = actualUsableWidth / (longestWordLen * 0.6);
                   const maxFontSizeHeight = room.height / 2;
-                  // Strictly cap at maxFontSizeWidth to guarantee letters from the same word are never split
+                  // Batasi ukuran font secara ketat agar huruf dari kata yang sama tidak terpisah
                   const fontSize = Math.min(maxFontSizeWidth, Math.max(9, Math.min(16, maxFontSizeHeight)));
 
                   return (
@@ -356,10 +356,10 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
                   const longestWordLen = Math.max(...textContent.split(' ').map(w => w.length), 1);
                   const actualUsableWidth = Math.max(10, kiosk.width - 12);
 
-                  // Adjust font size calculation for better readability and word wrapping
+                  // Sesuaikan ukuran font untuk keterbacaan dan word wrapping yang lebih baik
                   const maxFontSizeWidth = actualUsableWidth / (longestWordLen * 0.6);
                   const maxFontSizeHeight = kiosk.height / 2;
-                  // Strictly cap at maxFontSizeWidth to guarantee letters from the same word are never split
+                  // Batasi ukuran font secara ketat agar huruf dari kata yang sama tidak terpisah
                   const fontSize = Math.min(maxFontSizeWidth, Math.max(9, Math.min(16, maxFontSizeHeight)));
 
                   return (

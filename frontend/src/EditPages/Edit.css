@@ -32,18 +32,21 @@
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   cursor: pointer;
-  font-weight: 500;
+  font-weight: bold;
 }
 
 .edit-page-btn.cancel {
-  background: rgb(255, 103, 103);
-  color: rgb(0, 0, 0);
+  background: #ef4444;
+  color: white;
+  border: none;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
 }
 
 .edit-page-btn.save {
-  background: rgb(103, 255, 103);
-  color: #000000;
+  background: #10b981;
+  color: white;
   border: none;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
 }
 
 .edit-page-layout {
@@ -341,7 +344,7 @@ body.dark-mode .edit-page-right-panel::-webkit-scrollbar-thumb {
   font-size: 1.35rem;
   font-weight: 600;
   color: var(--text-main);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'DM Sans', sans-serif;
 }
 
 .confirm-modal p {

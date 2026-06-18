@@ -32,10 +32,10 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
   const longestWordLen = Math.max(...textContent.split(' ').map(w => w.length), 1);
   const actualUsableWidth = Math.max(10, shapeProps.width - 12);
 
-  // Adjust font size calculation for better readability and word wrapping
+  // Sesuaikan ukuran font untuk keterbacaan dan word wrapping yang lebih baik
   const maxFontSizeWidth = actualUsableWidth / (longestWordLen * 0.6);
   const maxFontSizeHeight = shapeProps.height / 2;
-  // Strictly cap at maxFontSizeWidth to guarantee letters from the same word are never split
+  // Batasi ukuran font secara ketat agar huruf dari kata yang sama tidak terpisah
   const dynamicFontSize = Math.min(maxFontSizeWidth, Math.max(9, Math.min(16, maxFontSizeHeight)));
 
   const getVisualColors = useCallback(() => {
@@ -233,7 +233,17 @@ export default function EditPage() {
       'redo': { id: 'Ulangi', en: 'Redo' },
       'rename_floor': { id: 'Ganti Nama', en: 'Rename' },
       'move_up': { id: 'Geser ke Atas', en: 'Move Up' },
-      'move_down': { id: 'Geser ke Bawah', en: 'Move Down' }
+      'move_up': { id: 'Geser ke Atas', en: 'Move Up' },
+      'move_down': { id: 'Geser ke Bawah', en: 'Move Down' },
+      'prompt_new_floor': { id: 'Masukkan nama lantai baru:\n(Contoh: Lantai 5, Gedung B, Basement)', en: 'Enter new floor name:\n(Example: Floor 5, Building B, Basement)' },
+      'alert_floor_exists': { id: 'Lantai tersebut sudah ada di daftar!', en: 'That floor is already in the list!' },
+      'alert_min_one_floor': { id: 'Tidak dapat menghapus. Harus tersisa minimal satu lantai di editor!', en: 'Cannot delete. At least one floor must remain in the editor!' },
+      'confirm_delete_floor_1': { id: 'Apakah Anda yakin ingin menghapus', en: 'Are you sure you want to delete' },
+      'confirm_delete_floor_2': { id: 'PERHATIAN: Seluruh elemen (Ruangan & Kiosk) yang berada di lantai ini akan terhapus dari database saat Anda menekan tombol Save.', en: 'WARNING: All elements (Rooms & Kiosks) on this floor will be deleted from the database when you click Save.' },
+      'prompt_rename_floor': { id: 'Masukkan nama baru untuk', en: 'Enter new name for' },
+      'alert_name_used': { id: 'Nama lantai tersebut sudah digunakan!', en: 'That floor name is already used!' },
+      'alert_save_success': { id: 'Denah dan setingan endpoint baru berhasil disimpan!', en: 'Map and endpoint settings successfully saved!' },
+      'alert_save_fail': { id: 'Gagal simpan:', en: 'Failed to save:' }
     };
     return dict[key] ? dict[key][language] : key;
   };
@@ -441,11 +451,11 @@ export default function EditPage() {
   };
 
   const handleAddFloor = () => {
-    const newFloor = window.prompt("Masukkan nama lantai baru:\n(Contoh: Lantai 5, Gedung B, Basement)");
+    const newFloor = window.prompt(getText('prompt_new_floor'));
     if (newFloor && newFloor.trim() !== "") {
       const formattedFloor = newFloor.trim();
       if (floors.includes(formattedFloor)) {
-        alert("Lantai tersebut sudah ada di daftar!");
+        alert(getText('alert_floor_exists'));
         return;
       }
       const newFloorsList = [...floors, formattedFloor];
@@ -457,12 +467,12 @@ export default function EditPage() {
 
   const handleDeleteFloor = () => {
     if (floors.length <= 1) {
-      alert("Tidak dapat menghapus. Harus tersisa minimal satu lantai di editor!");
+      alert(getText('alert_min_one_floor'));
       return;
     }
 
     const confirmDelete = window.confirm(
-      `Apakah Anda yakin ingin menghapus "${activeEditFloor}"?\n\nPERHATIAN: Seluruh elemen (Ruangan & Kiosk) yang berada di lantai ini akan terhapus dari database saat Anda menekan tombol Save.`
+      `${getText('confirm_delete_floor_1')} "${activeEditFloor}"?\n\n${getText('confirm_delete_floor_2')}`
     );
 
     if (confirmDelete) {
@@ -482,11 +492,11 @@ export default function EditPage() {
   };
 
   const handleRenameFloor = () => {
-    const newFloor = window.prompt(`Masukkan nama baru untuk "${activeEditFloor}":`, activeEditFloor);
+    const newFloor = window.prompt(`${getText('prompt_rename_floor')} "${activeEditFloor}":`, activeEditFloor);
     if (newFloor && newFloor.trim() !== "" && newFloor.trim() !== activeEditFloor) {
       const formattedFloor = newFloor.trim();
       if (floors.includes(formattedFloor)) {
-        alert("Nama lantai tersebut sudah digunakan!");
+        alert(getText('alert_name_used'));
         return;
       }
 
@@ -603,7 +613,7 @@ export default function EditPage() {
 
         placedElements.forEach((el) => {
           const col = el.type === 'kiosk' ? "Kiosks" : "Rooms";
-          if (!el.id) return; // Skip if no ID
+          if (!el.id) return;
           const docData = {
             id: el.id.toString(),
             name: el.name || "Tanpa Nama",
@@ -629,11 +639,11 @@ export default function EditPage() {
         batch.set(doc(db, "Settings", "MapConfig"), { floorOrder: floors }, { merge: true });
 
         await batch.commit();
-        alert("Denah dan setingan endpoint baru berhasil disimpan!");
+        alert(getText('alert_save_success'));
         navigate("/admin", { state: { authorized: true } });
       } catch (error) {
         console.error("Gagal simpan:", error);
-        alert("Gagal simpan: " + error.message);
+        alert(getText('alert_save_fail') + " " + error.message);
       }
     } else navigate("/admin", { state: { authorized: true } });
     setConfirmAction(null);
