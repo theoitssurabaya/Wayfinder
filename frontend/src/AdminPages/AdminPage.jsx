@@ -6,7 +6,42 @@ import { collection, onSnapshot, doc, updateDoc, query, orderBy, limit, addDoc, 
 import { db } from "../firebase";
 import SharedMap from "../components/SharedMap";
 import { translateName } from "../utils/translator";
+import { UAParser } from "ua-parser-js";
 import "./Admin.css";
+
+const formatDevice = (uaString) => {
+  if (!uaString) return "";
+  const parser = new UAParser(uaString);
+  const result = parser.getResult();
+  const device = result.device || {};
+  const os = result.os || {};
+  const browser = result.browser || {};
+  const cpu = result.cpu || {};
+  const engine = result.engine || {};
+  
+  let parts = [];
+  if (device.vendor || device.model) {
+    parts.push(`${device.vendor || ""} ${device.model || ""}`.trim());
+  } else if (device.type) {
+    parts.push(device.type.charAt(0).toUpperCase() + device.type.slice(1));
+  } else {
+    parts.push("Desktop/Laptop");
+  }
+
+  let osInfo = `${os.name || "Unknown OS"} ${os.version || ""}`.trim();
+  if (cpu.architecture) {
+    osInfo += ` (${cpu.architecture})`;
+  }
+  parts.push(osInfo);
+
+  let browserInfo = `${browser.name || "Unknown Browser"} ${browser.version || ""}`.trim();
+  if (engine.name) {
+    browserInfo += ` [${engine.name}]`;
+  }
+  parts.push(browserInfo);
+  
+  return parts.join(" • ") || uaString;
+};
 
 // ── komponen ikon ──
 const SearchIcon = () => (
@@ -627,7 +662,7 @@ export default function App() {
                     <div className="activity-desc">{act.desc ? act.desc[language] : ""}</div>
                     {act.device && (
                       <div className="activity-device" style={{ fontSize: "0.75em", opacity: 0.7, marginTop: "4px" }}>
-                        {act.device}
+                        {formatDevice(act.device)}
                       </div>
                     )}
                   </div>

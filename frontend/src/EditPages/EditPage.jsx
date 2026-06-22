@@ -671,6 +671,18 @@ export default function EditPage() {
     return lines;
   };
 
+  const formatFloorName = (floorName) => {
+    if (typeof floorName === 'string' && floorName.startsWith('submap_')) {
+      const roomId = floorName.replace('submap_', '');
+      const room = placedElements.find(el => el.id === roomId);
+      if (room && room.name) {
+        return `Submap - ${translateName(room.name, language)}`;
+      }
+      return `Submap - ${roomId}`;
+    }
+    return translateName(floorName, language);
+  };
+
   return (
     <div className="edit-page-container">
       <header className="edit-page-header">
@@ -781,7 +793,7 @@ export default function EditPage() {
                 className="custom-dropdown-header"
                 onClick={() => setIsFloorDropdownOpen(!isFloorDropdownOpen)}
               >
-                <span>{translateName(activeEditFloor, language)}</span>
+                <span>{formatFloorName(activeEditFloor)}</span>
                 <span className="dropdown-arrow">{isFloorDropdownOpen ? '▲' : '▼'}</span>
               </div>
               
@@ -823,7 +835,7 @@ export default function EditPage() {
                       }}
                       style={{ touchAction: 'none' }}
                     >
-                      <span className="floor-name">{translateName(f, language)}</span>
+                      <span className="floor-name">{formatFloorName(f)}</span>
                       <span className="drag-handle" title="Drag to reorder">≡</span>
                     </div>
                   ))}
@@ -857,7 +869,7 @@ export default function EditPage() {
             </button>
           </div>
 
-          <h3>{getText('edit_panel')} - {translateName(activeEditFloor, language)}</h3>
+          <h3>{getText('edit_panel')} - {formatFloorName(activeEditFloor)}</h3>
           <div className="edit-tools">
             <p className="edit-selected-text">
               {selectedId ? `${getText('selected')}: ${translateName(placedElements.find(el => el.id === selectedId)?.name || "Kiosk", language)}` : getText('no_element_selected')}
