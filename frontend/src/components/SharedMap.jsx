@@ -360,9 +360,17 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
                   // Batasi ukuran font secara ketat agar huruf dari kata yang sama tidak terpisah
                   const fontSize = Math.min(maxFontSizeWidth, Math.max(9, Math.min(16, maxFontSizeHeight)));
 
+                  const isInteractive = isPintu && onRoomClick;
+
                   return (
-                    <React.Fragment key={kiosk.id}>
-                      <Rect x={kiosk.x} y={kiosk.y} width={kiosk.width} height={kiosk.height} fill={fillCol} stroke={strokeCol} strokeWidth={2} perfectDrawEnabled={false} shadowForStrokeEnabled={false} listening={false} />
+                    <Group
+                      key={kiosk.id}
+                      onClick={(e) => { if (isInteractive) onRoomClick(kiosk, e); }}
+                      onTap={(e) => { if (isInteractive) onRoomClick(kiosk, e); }}
+                      onMouseEnter={(e) => { if (isInteractive) { e.target.getStage().container().style.cursor = 'pointer'; } }}
+                      onMouseLeave={(e) => { if (isInteractive) { e.target.getStage().container().style.cursor = 'default'; } }}
+                    >
+                      <Rect x={kiosk.x} y={kiosk.y} width={kiosk.width} height={kiosk.height} fill={fillCol} stroke={strokeCol} strokeWidth={2} perfectDrawEnabled={false} shadowForStrokeEnabled={false} listening={!isInteractive ? false : undefined} />
 
                       <Text
                         text={textContent}
@@ -373,7 +381,7 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
                         perfectDrawEnabled={false}
                         listening={false}
                       />
-                    </React.Fragment>
+                    </Group>
                   );
                 })}
 
