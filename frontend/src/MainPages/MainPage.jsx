@@ -831,9 +831,15 @@ export default function App() {
                       />
                     </form>
 
-                    <div className="mic-btn-wrapper" onClick={startListening} title={language === 'en' ? 'Voice Search' : 'Pencarian Suara'}>
-                      <MicIcon isListening={isListening} />
-                    </div>
+                    {search.length > 0 ? (
+                      <div className="mic-btn-wrapper" onClick={() => setSearch("")} title={language === 'en' ? 'Clear' : 'Hapus'}>
+                        <span style={{ fontSize: "24px", color: "var(--text-muted)", lineHeight: 1 }}>&times;</span>
+                      </div>
+                    ) : (
+                      <div className="mic-btn-wrapper" onClick={startListening} title={language === 'en' ? 'Voice Search' : 'Pencarian Suara'}>
+                        <MicIcon isListening={isListening} />
+                      </div>
+                    )}
 
                     {/* dropdown Tak Terlihat di Atas Chevron */}
                     <select
