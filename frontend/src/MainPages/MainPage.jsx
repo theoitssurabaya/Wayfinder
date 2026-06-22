@@ -107,9 +107,15 @@ export default function App() {
       return;
     }
 
-    if (isListening) return;
+    if (isListening) {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      return;
+    }
 
     const recognition = new SpeechRecognition();
+    recognitionRef.current = recognition;
     recognition.lang = language === 'en' ? 'en-US' : 'id-ID';
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
@@ -365,6 +371,7 @@ export default function App() {
   const countdownIntervalRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
   const latestTranscriptRef = useRef("");
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     let timeoutId;
