@@ -67,7 +67,9 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
   const visualColors = getVisualColors();
 
   const renderEndpoints = () => {
-    if (shapeProps.type !== 'room') return null;
+    const isRoom = shapeProps.type === 'room';
+    const isEntrance = shapeProps.type === 'kiosk' && shapeProps.name && shapeProps.name.toLowerCase().includes('pintu');
+    if (!isRoom && !isEntrance) return null;
     const endpoints = shapeProps.endpoints || ['bottom'];
     const markerLen = 16;
     const markerThick = 4;
@@ -635,7 +637,7 @@ export default function EditPage() {
             grid_y: Math.round(el.y / GRID_SIZE) || 0,
             grid_width: Math.round(el.width / GRID_SIZE) || 1,
             grid_height: Math.round(el.height / GRID_SIZE) || 1,
-            ...(el.type === 'room' && { endpoints: el.endpoints || ['bottom'] })
+            ...((el.type === 'room' || (el.type === 'kiosk' && el.name && el.name.toLowerCase().includes('pintu'))) && { endpoints: el.endpoints || ['bottom'] })
           };
           if (translations[el.name]) {
             if (typeof translations[el.name] === 'string') {
@@ -929,8 +931,13 @@ export default function EditPage() {
               </button>
             )}
 
-            {selectedId && placedElements.find(el => el.id === selectedId)?.type === 'room' && (() => {
-              const room = placedElements.find(el => el.id === selectedId);
+            {selectedId && (() => {
+              const el = placedElements.find(e => e.id === selectedId);
+              if (!el) return null;
+              const isRoom = el.type === 'room';
+              const isEntrance = el.type === 'kiosk' && el.name && el.name.toLowerCase().includes('pintu');
+              if (!isRoom && !isEntrance) return null;
+              const room = el;
               const updateRoom = (changes) => {
                 const newElements = placedElements.map(el => el.id === selectedId ? { ...el, ...changes } : el);
                 setPlacedElements(newElements);
