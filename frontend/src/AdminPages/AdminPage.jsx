@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import LogoImg from '../assets/Logo.png';
 import { useNavigate } from "react-router";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
-import { collection, onSnapshot, doc, updateDoc, query, orderBy, limit, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, query, orderBy, limit, addDoc, serverTimestamp, deleteDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import SharedMap from "../components/SharedMap";
 import { translateName } from "../utils/translator";
@@ -244,13 +244,27 @@ export default function App() {
     const qLogs = query(collection(db, "Logs"), orderBy("timestamp", "desc"), limit(50));
     const unsubscribeLogs = onSnapshot(qLogs, (logSnap) => {
       const loadedLogs = [];
+      const oneMonthAgo = new Date();
+      const currentMonth = oneMonthAgo.getMonth();
+      oneMonthAgo.setMonth(currentMonth - 1);
+      
+      if (oneMonthAgo.getMonth() === currentMonth) {
+        oneMonthAgo.setDate(0);
+      }
+
       logSnap.forEach((docSnap) => {
         const data = docSnap.data();
         let timeObj = null;
         if (data.timestamp) {
           timeObj = data.timestamp.toDate();
         }
-        loadedLogs.push({ id: docSnap.id, timeObj, ...data });
+        
+        if (timeObj && timeObj < oneMonthAgo) {
+          // Jika log lebih dari satu bulan, hapus dari database
+          deleteDoc(doc(db, "Logs", docSnap.id)).catch(err => console.error("Error deleting old log:", err));
+        } else {
+          loadedLogs.push({ id: docSnap.id, timeObj, ...data });
+        }
       });
       setActivities(loadedLogs);
     });
