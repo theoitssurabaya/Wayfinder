@@ -6,9 +6,10 @@ import { Stage, Layer, Rect, Text, Line, Transformer } from "react-konva";
 import { collection, getDocs, doc, writeBatch, getDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { translateName } from "../utils/translator";
+import { PromptDialog, AlertDialog, ConfirmDialog } from "../components/Dialogs";
 import "./Edit.css";
 
-const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggingElement, GRID_SIZE, originalElements, language, isDarkMode }) => {
+const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggingElement, GRID_SIZE, originalElements, language, isDarkMode, onRequestRename }) => {
   const shapeRef = useRef();
   const trRef = useRef();
 
@@ -21,10 +22,9 @@ const ElementShape = ({ shapeProps, isSelected, onSelect, onChange, setIsDraggin
 
   const handleRename = () => {
     const typeLabel = shapeProps.type === 'kiosk' ? 'Kiosk' : 'Ruangan';
-    const newName = window.prompt(`Masukkan Nama ${typeLabel}:`, shapeProps.name || "");
-    if (newName !== null) {
+    onRequestRename(`Masukkan Nama ${typeLabel}:`, shapeProps.name || "", (newName) => {
       onChange({ ...shapeProps, name: newName });
-    }
+    });
   };
 
   // ── rumus baru: auto shrink font ──
@@ -179,9 +179,18 @@ export default function EditPage() {
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
   const [isDraggingElement, setIsDraggingElement] = useState(false);
   const [selectedId, setSelectedId] = useState(null);
   const [deletedElements, setDeletedElements] = useState([]);
+
+  const [customPrompt, setCustomPrompt] = useState({ isOpen: false, title: '', defaultValue: '', onSubmit: null });
+  const [customAlert, setCustomAlert] = useState({ isOpen: false, message: '', onCloseCallback: null });
+  const [customConfirm, setCustomConfirm] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+
+  const showAlert = useCallback((message, onCloseCallback = null) => {
+    setCustomAlert({ isOpen: true, message, onCloseCallback });
+  }, []);
 
   const [floors, setFloors] = useState(["Lantai 1"]);
   const [activeEditFloor, setActiveEditFloor] = useState("Lantai 1");
@@ -254,7 +263,8 @@ export default function EditPage() {
       'prompt_rename_floor': { id: 'Masukkan nama baru untuk', en: 'Enter new name for' },
       'alert_name_used': { id: 'Nama lantai tersebut sudah digunakan!', en: 'That floor name is already used!' },
       'alert_save_success': { id: 'Denah dan setingan endpoint baru berhasil disimpan!', en: 'Map and endpoint settings successfully saved!' },
-      'alert_save_fail': { id: 'Gagal simpan:', en: 'Failed to save:' }
+      'alert_save_fail': { id: 'Gagal simpan:', en: 'Failed to save:' },
+      'saving_map': { id: 'Menyimpan Peta...', en: 'Saving Map...' }
     };
     return dict[key] ? dict[key][language] : key;
   };
@@ -462,69 +472,85 @@ export default function EditPage() {
   };
 
   const handleAddFloor = () => {
-    const newFloor = window.prompt(getText('prompt_new_floor'));
-    if (newFloor && newFloor.trim() !== "") {
-      const formattedFloor = newFloor.trim();
-      if (floors.includes(formattedFloor)) {
-        alert(getText('alert_floor_exists'));
-        return;
+    setCustomPrompt({
+      isOpen: true,
+      title: getText('prompt_new_floor'),
+      defaultValue: '',
+      onSubmit: (newFloor) => {
+        setCustomPrompt(prev => ({ ...prev, isOpen: false }));
+        if (newFloor && newFloor.trim() !== "") {
+          const formattedFloor = newFloor.trim();
+          if (floors.includes(formattedFloor)) {
+            showAlert(getText('alert_floor_exists'));
+            return;
+          }
+          const newFloorsList = [...floors, formattedFloor];
+          setFloors(newFloorsList);
+          setActiveEditFloor(formattedFloor);
+          setSelectedId(null);
+        }
       }
-      const newFloorsList = [...floors, formattedFloor];
-      setFloors(newFloorsList);
-      setActiveEditFloor(formattedFloor);
-      setSelectedId(null);
-    }
+    });
   };
 
   const handleDeleteFloor = () => {
     if (floors.length <= 1) {
-      alert(getText('alert_min_one_floor'));
+      showAlert(getText('alert_min_one_floor'));
       return;
     }
 
-    const confirmDelete = window.confirm(
-      `${getText('confirm_delete_floor_1')} "${activeEditFloor}"?\n\n${getText('confirm_delete_floor_2')}`
-    );
+    setCustomConfirm({
+      isOpen: true,
+      title: `${getText('confirm_delete_floor_1')} "${activeEditFloor}"?`,
+      message: getText('confirm_delete_floor_2'),
+      onConfirm: () => {
+        setCustomConfirm(prev => ({ ...prev, isOpen: false }));
+        const elementsToDelete = placedElements.filter(el => el.floor === activeEditFloor);
+        const idsToDelete = elementsToDelete.map(el => el.id);
+        setDeletedElements(prev => [...prev, ...idsToDelete]);
 
-    if (confirmDelete) {
-      const elementsToDelete = placedElements.filter(el => el.floor === activeEditFloor);
-      const idsToDelete = elementsToDelete.map(el => el.id);
-      setDeletedElements(prev => [...prev, ...idsToDelete]);
+        const newElements = placedElements.filter(el => el.floor !== activeEditFloor);
+        setPlacedElements(newElements);
+        saveHistory(newElements);
 
-      const newElements = placedElements.filter(el => el.floor !== activeEditFloor);
-      setPlacedElements(newElements);
-      saveHistory(newElements);
-
-      const remainingFloors = floors.filter(f => f !== activeEditFloor);
-      setFloors(remainingFloors);
-      setActiveEditFloor(remainingFloors[0]);
-      setSelectedId(null);
-    }
+        const remainingFloors = floors.filter(f => f !== activeEditFloor);
+        setFloors(remainingFloors);
+        setActiveEditFloor(remainingFloors[0]);
+        setSelectedId(null);
+      }
+    });
   };
 
   const handleRenameFloor = () => {
-    const newFloor = window.prompt(`${getText('prompt_rename_floor')} "${activeEditFloor}":`, activeEditFloor);
-    if (newFloor && newFloor.trim() !== "" && newFloor.trim() !== activeEditFloor) {
-      const formattedFloor = newFloor.trim();
-      if (floors.includes(formattedFloor)) {
-        alert(getText('alert_name_used'));
-        return;
-      }
+    setCustomPrompt({
+      isOpen: true,
+      title: `${getText('prompt_rename_floor')} "${activeEditFloor}":`,
+      defaultValue: activeEditFloor,
+      onSubmit: (newFloor) => {
+        setCustomPrompt(prev => ({ ...prev, isOpen: false }));
+        if (newFloor && newFloor.trim() !== "" && newFloor.trim() !== activeEditFloor) {
+          const formattedFloor = newFloor.trim();
+          if (floors.includes(formattedFloor)) {
+            showAlert(getText('alert_name_used'));
+            return;
+          }
 
-      const newElements = placedElements.map(el => {
-        if (el.floor === activeEditFloor) {
-          return { ...el, floor: formattedFloor };
+          const newElements = placedElements.map(el => {
+            if (el.floor === activeEditFloor) {
+              return { ...el, floor: formattedFloor };
+            }
+            return el;
+          });
+
+          setPlacedElements(newElements);
+          saveHistory(newElements);
+
+          const newFloorsList = floors.map(f => f === activeEditFloor ? formattedFloor : f);
+          setFloors(newFloorsList);
+          setActiveEditFloor(formattedFloor);
         }
-        return el;
-      });
-
-      setPlacedElements(newElements);
-      saveHistory(newElements);
-
-      const newFloorsList = floors.map(f => f === activeEditFloor ? formattedFloor : f);
-      setFloors(newFloorsList);
-      setActiveEditFloor(formattedFloor);
-    }
+      }
+    });
   };
 
   const handleDragSort = () => {
@@ -597,6 +623,7 @@ export default function EditPage() {
   const handleConfirmYes = async () => {
     setIsConfirmOpen(false);
     if (confirmAction === "save") {
+      setIsSaving(true);
       try {
         const namesToTranslate = Array.from(new Set(placedElements.map(el => el.name).filter(n => n && n !== "Tanpa Nama")));
         let translations = {};
@@ -654,11 +681,14 @@ export default function EditPage() {
         batch.set(doc(db, "Settings", "MapConfig"), { floorOrder: floors }, { merge: true });
 
         await batch.commit();
-        alert(getText('alert_save_success'));
-        navigate("/admin", { state: { authorized: true } });
+        showAlert(getText('alert_save_success'), () => {
+          navigate("/admin", { state: { authorized: true } });
+        });
       } catch (error) {
         console.error("Gagal simpan:", error);
-        alert(getText('alert_save_fail') + " " + error.message);
+        showAlert(getText('alert_save_fail') + " " + error.message);
+      } finally {
+        setIsSaving(false);
       }
     } else navigate("/admin", { state: { authorized: true } });
     setConfirmAction(null);
@@ -745,6 +775,37 @@ export default function EditPage() {
         </div>
       )}
 
+      <PromptDialog 
+        isOpen={customPrompt.isOpen} 
+        title={customPrompt.title} 
+        defaultValue={customPrompt.defaultValue} 
+        onSubmit={customPrompt.onSubmit} 
+        onCancel={() => setCustomPrompt(prev => ({ ...prev, isOpen: false }))} 
+      />
+      <AlertDialog 
+        isOpen={customAlert.isOpen} 
+        message={customAlert.message} 
+        onClose={() => {
+          setCustomAlert(prev => ({ ...prev, isOpen: false }));
+          if (customAlert.onCloseCallback) customAlert.onCloseCallback();
+        }} 
+      />
+      <ConfirmDialog 
+        isOpen={customConfirm.isOpen} 
+        title={customConfirm.title} 
+        message={customConfirm.message} 
+        onConfirm={customConfirm.onConfirm} 
+        onCancel={() => setCustomConfirm(prev => ({ ...prev, isOpen: false }))} 
+      />
+
+      {isSaving && (
+        <div className="modal-overlay" style={{ zIndex: 9999, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="spinner" style={{ width: '50px', height: '50px', border: '5px solid #f3f3f3', borderTop: '5px solid #3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+          <h2 style={{ color: 'white', marginTop: '20px' }}>{getText('saving_map')}</h2>
+        </div>
+      )}
+
       <div className="edit-page-layout">
         <main className="edit-page-map" ref={mapRef} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
           <TransformWrapper ref={transformRef} panning={{ disabled: isDraggingElement }} initialScale={1} minScale={0.05} maxScale={10} limitToBounds={false} wheel={{ step: 0.002, smooth: true }}>
@@ -775,6 +836,17 @@ export default function EditPage() {
                           originalElements={originalElements}
                           language={language}
                           isDarkMode={isDarkMode}
+                          onRequestRename={(title, defVal, onSubmit) => {
+                            setCustomPrompt({
+                              isOpen: true,
+                              title,
+                              defaultValue: defVal,
+                              onSubmit: (val) => {
+                                onSubmit(val);
+                                setCustomPrompt(prev => ({ ...prev, isOpen: false }));
+                              }
+                            });
+                          }}
                         />
                       ))}
                   </Layer>

@@ -7,6 +7,7 @@ import { db } from "../firebase";
 import SharedMap from "../components/SharedMap";
 import { translateName } from "../utils/translator";
 import { UAParser } from "ua-parser-js";
+import { AlertDialog } from "../components/Dialogs";
 import "./Admin.css";
 
 const formatDevice = (uaString) => {
@@ -94,6 +95,9 @@ export default function App() {
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
   });
+
+  const [customAlert, setCustomAlert] = useState({ isOpen: false, message: '' });
+  const showAlert = (message) => setCustomAlert({ isOpen: true, message });
 
   const [activities, setActivities] = useState([]);
 
@@ -466,7 +470,7 @@ export default function App() {
       setKioskToLock("");
     } catch (e) {
       console.error(e);
-      alert(getText('fail_lock_kiosk'));
+      showAlert(getText('fail_lock_kiosk'));
     }
   };
 
@@ -798,6 +802,11 @@ export default function App() {
             </TransformComponent>
           </TransformWrapper>
         </main>
+        <AlertDialog 
+          isOpen={customAlert.isOpen} 
+          message={customAlert.message} 
+          onClose={() => setCustomAlert(prev => ({ ...prev, isOpen: false }))} 
+        />
       </div>
     </div>
   );

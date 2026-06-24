@@ -7,6 +7,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { db, auth } from "../firebase";
 import SharedMap from "../components/SharedMap";
 import { translateName } from "../utils/translator";
+import { AlertDialog } from "../components/Dialogs";
 import { QRCodeCanvas } from "qrcode.react";
 import "./Main.css";
 
@@ -95,6 +96,9 @@ export default function App() {
   const [isSessionExpired, setIsSessionExpired] = useState(false);
   // ── status room action modal ──
   const [roomActionModal, setRoomActionModal] = useState(null); // { room, hasSubmap }
+  const [customAlert, setCustomAlert] = useState({ isOpen: false, message: '' });
+
+  const showAlert = (message) => setCustomAlert({ isOpen: true, message });
 
   useEffect(() => {
     document.body.classList.toggle("dark-mode", isDarkMode);
@@ -103,7 +107,7 @@ export default function App() {
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert(language === 'en' ? "Microphone not supported in this browser." : "Mikrofon tidak didukung di browser ini.");
+      showAlert(language === 'en' ? "Microphone not supported in this browser." : "Mikrofon tidak didukung di browser ini.");
       return;
     }
 
@@ -253,9 +257,9 @@ export default function App() {
       setLocation(lockId);
       setIsKioskLocked(true);
       if (language === 'en') {
-        alert(`This device is now permanently locked as Kiosk: ${lockId}`);
+        showAlert(`This device is now permanently locked as Kiosk: ${lockId}`);
       } else {
-        alert(`Perangkat ini berhasil dikunci permanen sebagai Kiosk: ${lockId}`);
+        showAlert(`Perangkat ini berhasil dikunci permanen sebagai Kiosk: ${lockId}`);
       }
       window.history.replaceState(null, "", window.location.pathname);
     } else if (unlock === "true") {
@@ -263,9 +267,9 @@ export default function App() {
       setLocation("");
       setIsKioskLocked(false);
       if (language === 'en') {
-        alert("Kiosk mode released. Device is back to normal mode.");
+        showAlert("Kiosk mode released. Device is back to normal mode.");
       } else {
-        alert("Mode Kiosk dilepas. Perangkat kembali ke mode normal.");
+        showAlert("Mode Kiosk dilepas. Perangkat kembali ke mode normal.");
       }
       window.history.replaceState(null, "", window.location.pathname);
     }
@@ -1282,6 +1286,11 @@ export default function App() {
             </div>
           </div>
         )}
+        <AlertDialog 
+          isOpen={customAlert.isOpen} 
+          message={customAlert.message} 
+          onClose={() => setCustomAlert(prev => ({ ...prev, isOpen: false }))} 
+        />
       </div>
     </div>
   );
