@@ -182,7 +182,8 @@ const ElementShape = React.memo(({ shapeProps, isSelected, onSelect, onChange, s
     prev.shapeProps.height === next.shapeProps.height &&
     prev.shapeProps.name === next.shapeProps.name &&
     prev.shapeProps.floor === next.shapeProps.floor &&
-    prev.shapeProps.type === next.shapeProps.type
+    prev.shapeProps.type === next.shapeProps.type &&
+    (prev.shapeProps.endpoints || []).join(',') === (next.shapeProps.endpoints || []).join(',')
   );
 });
 
@@ -194,6 +195,11 @@ export default function EditPage() {
 
   const [history, setHistory] = useState([]);
   const [historyStep, setHistoryStep] = useState(-1);
+
+  const stateRef = useRef({ placedElements, history, historyStep });
+  useEffect(() => {
+    stateRef.current = { placedElements, history, historyStep };
+  }, [placedElements, history, historyStep]);
 
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
@@ -848,11 +854,22 @@ export default function EditPage() {
                           GRID_SIZE={GRID_SIZE}
                           onSelect={() => setSelectedId(rect.id)}
                           onChange={(newAttrs) => {
+                            const { placedElements, history, historyStep } = stateRef.current;
                             const index = placedElements.findIndex(e => e.id === rect.id);
+                            if (index === -1) return;
                             const newElements = [...placedElements];
                             newElements[index] = newAttrs;
                             setPlacedElements(newElements);
-                            saveHistory(newElements);
+                            
+                            let newHistory = history.slice(0, historyStep + 1);
+                            newHistory.push(newElements);
+                            if (newHistory.length > 50) {
+                              newHistory = newHistory.slice(newHistory.length - 50);
+                            }
+                            setHistory(newHistory);
+                            setHistoryStep(newHistory.length - 1);
+
+                            stateRef.current = { placedElements: newElements, history: newHistory, historyStep: newHistory.length - 1 };
                           }}
                           originalElements={originalElements}
                           language={language}
