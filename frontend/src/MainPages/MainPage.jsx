@@ -9,6 +9,7 @@ import SharedMap from "../components/SharedMap";
 import { translateName } from "../utils/translator";
 import { AlertDialog } from "../components/Dialogs";
 import { QRCodeCanvas } from "qrcode.react";
+import LanguageSelector from "../components/LanguageSelector";
 import "./Main.css";
 
 // ── komponen ikon ──
@@ -637,14 +638,10 @@ export default function App() {
                 <span className="slider-icon">☀️</span>
               </span>
             </label>
-            <select
-              value={language}
+            <LanguageSelector
+              language={language}
               onChange={handleLanguageChange}
-              style={{ background: "transparent", border: "1px solid white", color: "white", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", outline: "none" }}
-            >
-              <option value="id" style={{ color: "black" }}>🇮🇩 ID</option>
-              <option value="en" style={{ color: "black" }}>🇬🇧 EN</option>
-            </select>
+            />
             <button className="header-login-btn Onclick" onClick={() => { setIsLoginOpen(true); setErrorMsg(""); setUsername(""); setPassword(""); }}>
               <LoginIcon />
               <span>{getText('login')}</span>
@@ -766,14 +763,11 @@ export default function App() {
                 <span className="slider-icon">☀️</span>
               </span>
             </label>
-            <select
-              value={language}
+            <LanguageSelector
+              language={language}
               onChange={handleLanguageChange}
-              style={{ background: "var(--white)", border: "1px solid var(--border)", color: "var(--text-main)", padding: "8px 12px", borderRadius: "10px", cursor: "pointer", fontWeight: "bold", boxShadow: "var(--shadow-md)", outline: "none" }}
-            >
-              <option value="id" style={{ color: "black" }}>🇮🇩 ID</option>
-              <option value="en" style={{ color: "black" }}>🇬🇧 EN</option>
-            </select>
+              isMobile={true}
+            />
           </div>
         )}
         <aside className={`left-panel ${isMobileMode ? 'mobile-panel' : ''}`}>

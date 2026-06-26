@@ -7,6 +7,7 @@ import { collection, getDocs, doc, writeBatch, getDoc } from "firebase/firestore
 import { db } from "../firebase";
 import { translateName } from "../utils/translator";
 import { PromptDialog, AlertDialog, ConfirmDialog } from "../components/Dialogs";
+import LanguageSelector from "../components/LanguageSelector";
 import "./Edit.css";
 
 const ElementShape = React.memo(({ shapeProps, isSelected, onSelect, onChange, setIsDraggingElement, GRID_SIZE, originalElements, language, isDarkMode, onRequestRename }) => {
@@ -759,14 +760,10 @@ export default function EditPage() {
               <span className="slider-icon">☀️</span>
             </span>
           </label>
-          <select
-            value={language}
+          <LanguageSelector
+            language={language}
             onChange={handleLanguageChange}
-            style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--white)", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", outline: "none" }}
-          >
-            <option value="id" style={{color: "black"}}>🇮🇩 ID</option>
-            <option value="en" style={{color: "black"}}>🇬🇧 EN</option>
-          </select>
+          />
 
           <button className="edit-page-btn cancel" onClick={() => setIsConfirmOpen(true)}><span>{getText('cancel')}</span></button>
           <button className="edit-page-btn save" onClick={() => { setConfirmAction("save"); setIsConfirmOpen(true); }}><span>{getText('save_map')}</span></button>

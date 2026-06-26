@@ -8,6 +8,7 @@ import SharedMap from "../components/SharedMap";
 import { translateName } from "../utils/translator";
 import { UAParser } from "ua-parser-js";
 import { AlertDialog } from "../components/Dialogs";
+import LanguageSelector from "../components/LanguageSelector";
 import "./Admin.css";
 
 const formatDevice = (uaString) => {
@@ -517,14 +518,10 @@ export default function App() {
               <span className="slider-icon">☀️</span>
             </span>
           </label>
-          <select 
-            value={language}
+          <LanguageSelector 
+            language={language}
             onChange={handleLanguageChange} 
-            style={{background: "transparent", border: "1px solid var(--border)", color: "var(--white)", padding: "5px 10px", borderRadius: "5px", cursor: "pointer", fontWeight: "bold", outline: "none"}}
-          >
-            <option value="id" style={{color: "black"}}>🇮🇩 ID</option>
-            <option value="en" style={{color: "black"}}>🇬🇧 EN</option>
-          </select>
+          />
           <button className="header-edit-btn" onClick={() => navigate("/edit", { state: { authorized: true } })}>
             <EditIcon />
             <span>{getText('edit')}</span>
