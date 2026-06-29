@@ -603,6 +603,14 @@ export default function App() {
     }
   };
 
+  const qrCodeUrl = useMemo(() => {
+    if (!isQrModalOpen) return "";
+    const host = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? serverIp : window.location.hostname;
+    const port = window.location.port ? `:${window.location.port}` : "";
+    const expires = Date.now() + 5 * 60 * 1000;
+    return `${window.location.protocol}//${host}${port}/?start=${encodeURIComponent(location)}&end=${encodeURIComponent(search)}&mobile=true&expires=${expires}`;
+  }, [isQrModalOpen, serverIp, location, search]);
+
   if (isSessionExpired) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)', color: 'var(--text-main)', textAlign: 'center', padding: '20px' }}>
@@ -729,12 +737,7 @@ export default function App() {
             <button className="close-btn" onClick={() => setIsQrModalOpen(false)}>×</button>
             <div style={{ background: "white", padding: "16px", borderRadius: "10px", display: "inline-block" }}>
               <QRCodeCanvas
-                value={(() => {
-                  const host = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? serverIp : window.location.hostname;
-                  const port = window.location.port ? `:${window.location.port}` : "";
-                  const expires = Date.now() + 5 * 60 * 1000;
-                  return `${window.location.protocol}//${host}${port}/?start=${encodeURIComponent(location)}&end=${encodeURIComponent(search)}&mobile=true&expires=${expires}`;
-                })()}
+                value={qrCodeUrl}
                 size={200}
               />
             </div>

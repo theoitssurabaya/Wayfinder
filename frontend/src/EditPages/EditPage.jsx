@@ -384,7 +384,8 @@ export default function EditPage() {
             x: (data.grid_x || 0) * GRID_SIZE,
             y: (data.grid_y || 0) * GRID_SIZE,
             width: (data.grid_width || 2) * GRID_SIZE,
-            height: (data.grid_height || 2) * GRID_SIZE
+            height: (data.grid_height || 2) * GRID_SIZE,
+            endpoints: data.endpoints && data.endpoints.length > 0 ? data.endpoints : ['bottom']
           });
         });
 
