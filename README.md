@@ -80,4 +80,4 @@ After executing the command:
 *(Note: Upon the first run, the backend will take about 5 seconds to load the AI model).*
 
 ## Video Demo
-<iframe src="https://drive.google.com/file/d/11J_qKzrjaZPY3CgueYLxJ0ID7a5MwSCY/preview" width="640" height="480" allow="autoplay"></iframe>
+[![Watch the Video](https://img.youtube.com/vi/YOUTUBE_ID/0.jpg)](https://drive.google.com/file/d/11J_qKzrjaZPY3CgueYLxJ0ID7a5MwSCY/view?usp=sharing)
