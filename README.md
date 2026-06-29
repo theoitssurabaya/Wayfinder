@@ -78,3 +78,6 @@ After executing the command:
 - **Frontend UI** will automatically open at `http://localhost:5173`
 - **Backend API & AI** will automatically run in the background at `http://localhost:8000`
 *(Note: Upon the first run, the backend will take about 5 seconds to load the AI model).*
+
+## Video Demo
+<iframe src="https://drive.google.com/file/d/11J_qKzrjaZPY3CgueYLxJ0ID7a5MwSCY/preview" width="640" height="480" allow="autoplay"></iframe>
