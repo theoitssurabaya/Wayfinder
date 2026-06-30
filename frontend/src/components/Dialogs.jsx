@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 
 export const PromptDialog = ({ isOpen, title, defaultValue, onSubmit, onCancel, okText = "OK", cancelText = "Cancel" }) => {
   const [value, setValue] = useState(defaultValue || '');
-  useEffect(() => { setValue(defaultValue || ''); }, [defaultValue, isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setValue(defaultValue || '');
+    }
+  }, [defaultValue, isOpen]);
   
   if (!isOpen) return null;
   return (
