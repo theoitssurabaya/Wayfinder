@@ -43,16 +43,21 @@ def sinkronisasi_peta(data):
                 
                 endpoints = item.get("endpoints", ["bottom"])
                 
+                is_kiosk = item.get("type", "room") == "kiosk"
                 door_coords = []
                 for ep in endpoints:
                     if ep == "top":
-                        door_coords.append((gx + gw//2, gy))
+                        cy = max(0, gy - 1) if is_kiosk else gy
+                        door_coords.append((gx + gw//2, cy))
                     elif ep == "bottom":
-                        door_coords.append((gx + gw//2, gy + gh - 1))
+                        cy = min(waypoint_graph.GRID_HEIGHT - 1, gy + gh) if is_kiosk else gy + gh - 1
+                        door_coords.append((gx + gw//2, cy))
                     elif ep == "left":
-                        door_coords.append((gx, gy + gh//2))
+                        cx = max(0, gx - 1) if is_kiosk else gx
+                        door_coords.append((cx, gy + gh//2))
                     elif ep == "right":
-                        door_coords.append((gx + gw - 1, gy + gh//2))
+                        cx = min(waypoint_graph.GRID_WIDTH - 1, gx + gw) if is_kiosk else gx + gw - 1
+                        door_coords.append((cx, gy + gh//2))
                 
                 floor = item.get("floor", "Lantai 1")
                 

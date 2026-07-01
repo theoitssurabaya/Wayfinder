@@ -11,9 +11,13 @@ def _a_star_single_floor(start_node, target_node):
         is_entrance = is_kiosk and "pintu" in node.get("name", "").lower()
         
         if is_kiosk and not is_entrance:
-            for dy in range(node.get("h", 1)):
-                for dx in range(node.get("w", 1)):
-                    coords.add((node["x"] + dx, node["y"] + dy))
+            if "door_coords" in node and node["door_coords"]:
+                for c in node["door_coords"]:
+                    coords.add(c)
+            else:
+                for dy in range(node.get("h", 1)):
+                    for dx in range(node.get("w", 1)):
+                        coords.add((node["x"] + dx, node["y"] + dy))
         else:
             if "door_coords" in node and node["door_coords"]:
                 for c in node["door_coords"]:
@@ -25,6 +29,16 @@ def _a_star_single_floor(start_node, target_node):
         return coords
 
     target_coords = get_valid_coords(target_node)
+    
+    # Expand target_coords to include adjacent walkable cells to make stopping more flexible
+    expanded_target_coords = set(target_coords)
+    for tx, ty in target_coords:
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (-1, 1), (1, -1)]:
+            nx, ny = tx + dx, ty + dy
+            if 0 <= nx < GRID_WIDTH and 0 <= ny < GRID_HEIGHT:
+                if grid[ny][nx] == 0:
+                    expanded_target_coords.add((nx, ny))
+    target_coords = expanded_target_coords
     
     open_set = []
     came_from = {}
@@ -61,7 +75,23 @@ def _a_star_single_floor(start_node, target_node):
         for nx, ny in tetangga_list:
             if 0 <= nx < GRID_WIDTH and 0 <= ny < GRID_HEIGHT:
                 if grid[ny][nx] == 0 or (nx, ny) in target_coords:
-                    tentative_g = g_score[current] + 1 
+                    # Turn penalty
+                    turn_penalty = 0
+                    if current in came_from:
+                        prev = came_from[current]
+                        if (current[0] - prev[0]) != (nx - current[0]) or (current[1] - prev[1]) != (ny - current[1]):
+                            turn_penalty = 0.5
+                            
+                    # Wall-hugging penalty (prefer walking in the middle of corridors)
+                    wall_penalty = 0
+                    for wx, wy in [(nx-1, ny), (nx+1, ny), (nx, ny-1), (nx, ny+1), (nx-1, ny-1), (nx+1, ny+1), (nx-1, ny+1), (nx+1, ny-1)]:
+                        if 0 <= wx < GRID_WIDTH and 0 <= wy < GRID_HEIGHT:
+                            # If adjacent cell is a wall, add a small penalty
+                            if grid[wy][wx] == 1 and (wx, wy) not in target_coords:
+                                wall_penalty += 0.1
+                                
+                    tentative_g = g_score[current] + 1 + turn_penalty + wall_penalty
+                    
                     if (nx, ny) not in g_score or tentative_g < g_score[(nx, ny)]:
                         came_from[(nx, ny)] = current
                         g_score[(nx, ny)] = tentative_g
@@ -217,9 +247,13 @@ def get_room_display_name(room_obj, language="id"):
         
     return name
 
-def get_adjacent_room(x, y, floor, exclude_ids=None):
+def get_nearest_landmark(x, y, floor, exclude_ids=None):
     if exclude_ids is None:
         exclude_ids = set()
+    
+    closest_room = None
+    min_dist = float('inf')
+    closest_room_center_dist = float('inf')
     
     for r_id, room in RUANGAN_GRID.items():
         if r_id in exclude_ids:
@@ -228,16 +262,38 @@ def get_adjacent_room(x, y, floor, exclude_ids=None):
         if room.get("floor", "Lantai 1") != floor:
             continue
             
+        # Boleh memasukkan Kiosk sebagai patokan jika ada namanya, tapi prioritas lebih rendah?
+        # User bilang "correlated to rooms or kiosk that its near", jadi kita hapus filter Kiosk!
+        # if room.get("name") and "Kiosk" in room.get("name", ""):
+        #     continue
+            
+        name = room.get("name", "")
+        if not name or name.lower() == "tanpa nama" or "jalan" in name.lower() or "lorong" in name.lower() or name.lower() == "pintu masuk":
+            continue
+
         rx = room["x"]
         ry = room["y"]
         rw = room.get("w", 1)
         rh = room.get("h", 1)
         
-        # Cek apakah (x, y) berada dalam bounding box ruangan diperbesar 1 petak.
-        if (rx - 1 <= x <= rx + rw) and (ry - 1 <= y <= ry + rh):
-            # Hindari Kiosk (kiosk_id biasa berawalan K) atau kita filter dari nama.
-            if room.get("name") and "Kiosk" not in room.get("name", ""):
-                return room
+        # Hitung jarak terpendek dari titik (x,y) ke kotak ruangan (bounding box)
+        dx = max(rx - x, 0, x - (rx + rw - 1))
+        dy = max(ry - y, 0, y - (ry + rh - 1))
+        dist = dx + dy
+        
+        # Tie breaker: jarak ke tengah ruangan
+        cx = rx + rw / 2
+        cy = ry + rh / 2
+        center_dist = abs(cx - x) + abs(cy - y)
+        
+        if dist < min_dist or (dist == min_dist and closest_room and center_dist < closest_room_center_dist):
+            min_dist = dist
+            closest_room = room
+            closest_room_center_dist = center_dist
+            
+    # Hanya gunakan patokan jika benar-benar dekat dengan titik belok (jarak <= 2 tile).
+    if closest_room and min_dist <= 2:
+        return closest_room
     return None
 
 def get_clean_floor_name(floor_str, language="en"):
@@ -283,6 +339,28 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
         if p2["y"] > p1["y"]: return 'Bawah'
         if p2["y"] < p1["y"]: return 'Atas'
         return None
+
+    def get_relative_position(current_dir, turn_x, turn_y, room_obj):
+        if not room_obj: return None
+        rx = room_obj["x"]
+        ry = room_obj["y"]
+        rw = room_obj.get("w", 1)
+        rh = room_obj.get("h", 1)
+        
+        if current_dir == 'Atas': # moving -y
+            if rx + rw - 1 < turn_x: return "kiri" if language == "id" else "left"
+            if rx > turn_x: return "kanan" if language == "id" else "right"
+        elif current_dir == 'Bawah': # moving +y
+            if rx + rw - 1 < turn_x: return "kanan" if language == "id" else "right"
+            if rx > turn_x: return "kiri" if language == "id" else "left"
+        elif current_dir == 'Kanan': # moving +x
+            if ry + rh - 1 < turn_y: return "kiri" if language == "id" else "left"
+            if ry > turn_y: return "kanan" if language == "id" else "right"
+        elif current_dir == 'Kiri': # moving -x
+            if ry + rh - 1 < turn_y: return "kanan" if language == "id" else "right"
+            if ry > turn_y: return "kiri" if language == "id" else "left"
+            
+        return "dekat" if language == "id" else "near"
 
     def get_turn(prev_dir, next_dir):
         if prev_dir == next_dir: return None
@@ -338,31 +416,49 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
             current_dir = dir
         elif current_dir != dir:
             turn = get_turn(current_dir, dir)
-            adj_room_obj = get_adjacent_room(p1["x"], p1["y"], p1["floor"], exclude_ids)
+            adj_room_obj = get_nearest_landmark(p1["x"], p1["y"], p1["floor"], exclude_ids)
             adj_room = get_room_display_name(adj_room_obj, language) if adj_room_obj else None
             
             if len(langkah) == 0:
-                if language == "id": prefix = f"Dari {start_name}, berjalanlah ke arah {current_dir}"
-                else: prefix = f"From {start_name}, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'}"
+                dir_id = {'Atas':'Depan', 'Bawah':'Belakang', 'Kanan':'Kanan', 'Kiri':'Kiri'}.get(current_dir, current_dir)
+                if language == "id": prefix = f"Menghadaplah ke arah {dir_id}."
+                else: prefix = f"Face {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'}."
             elif is_after_transition:
                 if p1['floor'].startswith("submap_"):
-                    if language == "id": prefix = f"Setelah masuk, berjalanlah ke arah {current_dir}"
-                    else: prefix = f"After entering, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'}"
+                    if language == "id": prefix = f"Setelah masuk,"
+                    else: prefix = f"After entering,"
                 else:
-                    if language == "id": prefix = f"Setelah keluar di {p1['floor']}, berjalanlah ke arah {current_dir}"
+                    if language == "id": prefix = f"Setelah keluar di {p1['floor']},"
                     else: 
                         t_floor1 = get_translated_floor(p1['floor'], language)
-                        prefix = f"After exiting at {t_floor1}, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'}"
+                        prefix = f"After exiting at {t_floor1},"
                 is_after_transition = False
             else:
-                prefix = "Setelah belok, lurus terus" if language == "id" else "After turning, go straight"
+                prefix = ""
                 
             if adj_room:
-                if language == "id": teks = f"{prefix} sampai ketemu {adj_room}, lalu belok {turn}."
-                else: teks = f"{prefix} until you see {adj_room}, then turn {turn}."
+                pos = get_relative_position(current_dir, p1["x"], p1["y"], adj_room_obj)
+                if pos == "dekat" or pos == "near":
+                    if prefix:
+                        if language == "id": teks = f"{prefix} Jalan lurus, lalu belok {turn} di dekat {adj_room}."
+                        else: teks = f"{prefix} Walk straight, then turn {turn} near {adj_room}."
+                    else:
+                        if language == "id": teks = f"Terus lurus, lalu belok {turn} di dekat {adj_room}."
+                        else: teks = f"Go straight, then turn {turn} near {adj_room}."
+                else:
+                    if prefix:
+                        if language == "id": teks = f"{prefix} Jalan lurus, lalu belok {turn} setelah melewati {adj_room} di sebelah {pos} Anda."
+                        else: teks = f"{prefix} Walk straight, then turn {turn} after passing {adj_room} on your {pos}."
+                    else:
+                        if language == "id": teks = f"Terus lurus, lalu belok {turn} setelah melewati {adj_room} di sebelah {pos} Anda."
+                        else: teks = f"Go straight, then turn {turn} after passing {adj_room} on your {pos}."
             else:
-                if language == "id": teks = f"{prefix} sampai persimpangan, lalu belok {turn}."
-                else: teks = f"{prefix} until the intersection, then turn {turn}."
+                if prefix:
+                    if language == "id": teks = f"{prefix} Jalan lurus, lalu belok {turn}."
+                    else: teks = f"{prefix} Walk straight, then turn {turn}."
+                else:
+                    if language == "id": teks = f"Terus lurus, lalu belok {turn}."
+                    else: teks = f"Go straight, then turn {turn}."
             
             langkah.append({
                 "teks": teks,
@@ -377,8 +473,9 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
             if language == "id": teks_akhir = f"Anda sudah berada di {target_name}."
             else: teks_akhir = f"You are already at {target_name}."
         else:
-            if language == "id": teks_akhir = f"Dari {start_name}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
-            else: teks_akhir = f"From {start_name}, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'} and you will arrive at {target_name}."
+            dir_id = {'Atas':'Depan', 'Bawah':'Belakang', 'Kanan':'Kanan', 'Kiri':'Kiri'}.get(current_dir, current_dir)
+            if language == "id": teks_akhir = f"Menghadaplah ke arah {dir_id}. Jalan lurus dan Anda akan sampai di {target_name}."
+            else: teks_akhir = f"Face {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'}. Walk straight and you will arrive at {target_name}."
     elif is_after_transition:
         if current_dir is None:
             final_floor = path[-1]['floor']
@@ -392,13 +489,26 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
                 else: teks_akhir = f"You have arrived at {get_translated_floor(final_floor, language)}."
         else:
             if path[-1]['floor'].startswith("submap_"):
-                if language == "id": teks_akhir = f"Setelah masuk, lurus ke arah {current_dir} dan Anda akan sampai di {target_name}."
+                if language == "id": teks_akhir = f"Setelah masuk, jalan lurus ke arah {current_dir} dan Anda akan sampai di {target_name}."
                 else: teks_akhir = f"After entering, go straight {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'} and you will arrive at {target_name}."
             else:
-                if language == "id": teks_akhir = f"Dari Lift di {path[-1]['floor']}, berjalanlah ke arah {current_dir} dan Anda akan sampai di {target_name}."
-                else: teks_akhir = f"From the Lift at {get_translated_floor(path[-1]['floor'], language)}, walk {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'} and you will arrive at {target_name}."
+                if language == "id": teks_akhir = f"Dari Lift di {path[-1]['floor']}, jalan lurus ke arah {current_dir} dan Anda akan sampai di {target_name}."
+                else: teks_akhir = f"From the Lift at {get_translated_floor(path[-1]['floor'], language)}, walk straight {'Up' if current_dir=='Atas' else 'Down' if current_dir=='Bawah' else 'Right' if current_dir=='Kanan' else 'Left'} and you will arrive at {target_name}."
     else:
-        teks_akhir = f"Setelah belok, lurus terus dan Anda akan sampai di {target_name}." if language == "id" else f"After turning, go straight and you will arrive at {target_name}."
+        target_room_obj = RUANGAN_GRID.get(target_id)
+        if target_room_obj:
+            pos = get_relative_position(current_dir, path[-1]["x"], path[-1]["y"], target_room_obj)
+            if pos == "dekat" or pos == "near":
+                pos = "depan" if language == "id" else "front of"
+                
+            if pos == "depan" or pos == "front of":
+                if language == "id": teks_akhir = f"{target_name} ada di {pos} Anda."
+                else: teks_akhir = f"{target_name} is in {pos} you."
+            else:
+                if language == "id": teks_akhir = f"{target_name} ada di sebelah {pos} Anda."
+                else: teks_akhir = f"{target_name} is on your {pos}."
+        else:
+            teks_akhir = f"{target_name} ada di depan Anda." if language == "id" else f"{target_name} is in front of you."
 
     langkah.append({
         "teks": teks_akhir,

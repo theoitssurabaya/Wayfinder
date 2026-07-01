@@ -52,7 +52,7 @@ function getPointAtDistance(pathPoints, distance) {
   return { x: lastX, y: lastY, angle: 0 };
 }
 
-export default function SharedMap({ path = [], activePath = null, currentFloor = "Lantai 1", onRoomClick, showGrid = true, showBorder = false, language = "id", isDarkMode = false }) {
+export default function SharedMap({ path = [], activePath = null, activeStepIndex = 0, activeStepText = "", currentFloor = "Lantai 1", selectedKiosk, onRoomClick, showGrid = true, showBorder = false, language = "id", isDarkMode = false }) {
   const [rooms, setRooms] = useState([]);
   const [kiosks, setKiosks] = useState([]);
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
@@ -232,31 +232,97 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
       totalPathLength = getTotalPathLength(activePathPoints);
     }
 
-    // Kecepatan jalan: semakin kecil angka = semakin lambat.
-    // TotalPathLength / X -> orang menempuh seluruh jalur dalam X detik.
-    const WALK_SPEED = Math.max(15, totalPathLength / 5);
+    // Kecepatan jalan: disesuaikan dengan durasi teks navigasi agar pas
+    // Estimasi TTS membaca: ~15 karakter per detik
+    const textLen = activeStepText ? activeStepText.length : 20;
+    const estimatedSeconds = Math.max(2, textLen * 0.07); // ~14 chars per sec
+    const WALK_SPEED = totalPathLength > 0 ? (totalPathLength / estimatedSeconds) : 15;
     const LEG_SWING_FREQ = 0.006; // Frekuensi ayunan kaki.
 
     const anim = new Konva.Animation((frame) => {
       if (!lineRef.current) return;
 
-
       const dashOffset = (frame.time / 25) % 20;
       lineRef.current.dashOffset(-dashOffset);
 
       if (personRef.current && activePathPoints.length >= 4 && totalPathLength > 0) {
-        const distance = Math.min((frame.time / 1000) * WALK_SPEED, totalPathLength);
-        const isMoving = distance < totalPathLength;
-        const { x, y, angle } = getPointAtDistance(activePathPoints, distance);
+        const DELAY = 1000; // 1 second delay for rotation
 
-        personRef.current.x(x);
-        personRef.current.y(y);
-        personRef.current.rotation(angle);
+        // Capture initial angle once when animation starts
+        if (personRef.current.startAngle === undefined || personRef.current.lastStepIndex !== activeStepIndex) {
+            const p0 = getPointAtDistance(activePathPoints, 0);
+            const firstAngle = p0.angle;
+            
+            if (activeStepIndex === 0) {
+                const kiosk = kiosks.find(k => k.id === selectedKiosk);
+                if (kiosk) {
+                    const kioskCenterX = kiosk.x + kiosk.width / 2;
+                    const kioskCenterY = kiosk.y + kiosk.height / 2;
+                    personRef.current.startAngle = Math.atan2(kioskCenterY - p0.y, kioskCenterX - p0.x) * (180 / Math.PI);
+                } else {
+                    personRef.current.startAngle = firstAngle + 180;
+                }
+            } else {
+                personRef.current.startAngle = personRef.current.rotation();
+            }
+            personRef.current.lastStepIndex = activeStepIndex;
+        }
 
-        if (leftFootRef.current && rightFootRef.current) {
-          const footSwing = isMoving ? Math.sin(frame.time * LEG_SWING_FREQ) * 8 : 0;
-          leftFootRef.current.x(footSwing);
-          rightFootRef.current.x(-footSwing);
+        if (frame.time < DELAY) {
+          // Standing still, rotating from startAngle to path angle
+          const p0 = getPointAtDistance(activePathPoints, 0);
+          const firstAngle = p0.angle;
+          const initialAngle = personRef.current.startAngle;
+          
+          const progress = frame.time / DELAY;
+          // easeInOutQuad
+          const ease = progress < 0.5 ? 2 * progress * progress : -1 + (4 - 2 * progress) * progress;
+          
+          // Interpolate angle. We want to find the shortest path from initialAngle to firstAngle
+          let diff = firstAngle - initialAngle;
+          diff = ((diff + 180) % 360 + 360) % 360 - 180;
+          
+          const currentAngle = initialAngle + (diff * ease);
+          
+          personRef.current.x(p0.x);
+          personRef.current.y(p0.y);
+          personRef.current.rotation(currentAngle);
+          
+          if (leftFootRef.current && rightFootRef.current) {
+            leftFootRef.current.x(0);
+            rightFootRef.current.x(0);
+          }
+        } else {
+          // Walking along path
+          const distance = Math.min(((frame.time - DELAY) / 1000) * WALK_SPEED, totalPathLength);
+          const isMoving = distance < totalPathLength;
+          const { x, y, angle } = getPointAtDistance(activePathPoints, distance);
+
+          let targetAngle = angle;
+          let currentAngle = personRef.current.rotation();
+          
+          // Hitung jarak terpendek ke targetAngle
+          let diff = targetAngle - currentAngle;
+          diff = ((diff + 180) % 360 + 360) % 360 - 180;
+          
+          // Putaran mulus (sekitar 400 derajat per detik)
+          let turnSpeed = 400 * (frame.timeDiff / 1000);
+          let newAngle;
+          if (Math.abs(diff) <= turnSpeed) {
+              newAngle = targetAngle;
+          } else {
+              newAngle = currentAngle + Math.sign(diff) * turnSpeed;
+          }
+
+          personRef.current.x(x);
+          personRef.current.y(y);
+          personRef.current.rotation(newAngle);
+
+          if (leftFootRef.current && rightFootRef.current) {
+            const footSwing = isMoving ? Math.sin((frame.time - DELAY) * LEG_SWING_FREQ) * 8 : 0;
+            leftFootRef.current.x(footSwing);
+            rightFootRef.current.x(-footSwing);
+          }
         }
       }
     }, lineRef.current.getLayer());
@@ -409,6 +475,10 @@ export default function SharedMap({ path = [], activePath = null, currentFloor =
                           <Rect ref={rightFootRef} x={0} y={8} width={10} height={6} fill="#333" cornerRadius={3} offsetX={5} offsetY={3} />
                           <Rect x={0} y={0} width={16} height={24} fill="#2196F3" cornerRadius={8} offsetX={8} offsetY={12} />
                           <Circle x={0} y={0} radius={7} fill="#FFCCBC" stroke="#333" strokeWidth={1} />
+                          {/* Glasses */}
+                          <Line points={[3, -4, 3, 4]} stroke="#333" strokeWidth={1.5} />
+                          <Circle x={4} y={-3} radius={2.5} fill="#333" />
+                          <Circle x={4} y={3} radius={2.5} fill="#333" />
                         </Group>
                       )}
                     </>

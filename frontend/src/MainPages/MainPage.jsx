@@ -1130,6 +1130,8 @@ export default function App() {
                 <SharedMap
                   path={pathData}
                   activePath={activePath}
+                  activeStepIndex={activeStepIndex}
+                  activeStepText={activeStepIndex >= 0 && navigationSteps[activeStepIndex] ? navigationSteps[activeStepIndex].teks : ""}
                   currentFloor={floor}
                   language={language}
                   selectedKiosk={location}
