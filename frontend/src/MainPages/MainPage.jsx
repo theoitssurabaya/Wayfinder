@@ -940,6 +940,7 @@ export default function App() {
                         <optgroup key={floorName} label={translateName(floorName, language)}>
                           {rooms
                             .filter(room => {
+                              if (room.building !== building) return false;
                               if (room.floor === floorName) return true;
                               if (room.floor.startsWith("submap_")) {
                                 const parentId = room.floor.replace("submap_", "");
@@ -949,11 +950,11 @@ export default function App() {
                               return false;
                             })
                             .map((room) => {
-                              let displayName = translateName(room.name, language, room.name_en);
+                              let displayName = getDisplayNodeName(room, language);
                               if (room.floor.startsWith("submap_")) {
                                 const parentId = room.floor.replace("submap_", "");
                                 const parentRoom = rooms.find(r => r.id === parentId);
-                                if (parentRoom) displayName += " " + translateName(parentRoom.name, language, parentRoom.name_en);
+                                if (parentRoom) displayName += " " + getDisplayNodeName(parentRoom, language);
                               }
                               return <option key={room.id} value={room.id}>{displayName}</option>;
                             })}
@@ -1216,18 +1217,17 @@ export default function App() {
                     if (isMobileMode) return;
                     const hasSubmap = floors.includes(`submap_${room.id}`);
                     if (hasSubmap) {
-
                       const clientX = e?.evt?.clientX ?? window.innerWidth / 2;
                       const clientY = e?.evt?.clientY ?? window.innerHeight / 2;
                       setRoomActionModal({ room, hasSubmap: true, x: clientX, y: clientY });
                     } else {
-                      if (room.type === "kiosk") {
+                      if (room.type === "kiosk" && !room.is_connector) {
                         setLocation(room.id);
                         if (search) {
                           executeSearch(room.id, search);
                         }
                       } else {
-                        const roomName = translateName(room.name, language, room.name_en);
+                        const roomName = getDisplayNodeName(room, language);
                         setSearch(roomName);
                         if (location) {
                           executeSearch(location, roomName);
@@ -1286,7 +1286,7 @@ export default function App() {
                 </div>
                 <div>
                   <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 700, fontSize: "0.9rem", color: isDarkMode ? "#f1f5f9" : "#172B4D" }}>
-                    {translateName(roomActionModal.room.name, language, roomActionModal.room.name_en)}
+                    {getDisplayNodeName(roomActionModal.room, language)}
                   </div>
                   <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "2px" }}>
                     {language === 'id' ? 'Pilih tindakan untuk ruangan ini' : 'Choose an action for this room'}
@@ -1308,7 +1308,7 @@ export default function App() {
                 <button
                   onClick={() => {
                     const room = roomActionModal.room;
-                    const roomName = translateName(room.name, language, room.name_en);
+                    const roomName = getDisplayNodeName(room, language);
                     setSearch(roomName);
                     setRoomActionModal(null);
                     if (location) {

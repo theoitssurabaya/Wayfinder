@@ -717,11 +717,12 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: #0056b3;
+  border: 1.5px solid var(--border);
+  background: var(--white);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--text-muted);
   z-index: 2;
 }
 

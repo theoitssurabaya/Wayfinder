@@ -385,11 +385,8 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
               {/* Render Ruangan bersih senada background (Tanpa Endpoint) */}
               {currentFloorRooms
                 .map((room) => {
-                  let textContent = translateName(room.name || "Tanpa Nama", language, room.name_en);
-                  if (room.is_connector && room.target_building) {
-                    const translatedTarget = translateName(room.target_building, language);
-                    textContent = language === 'id' ? `Pintu ke ${translatedTarget}` : `Door to ${translatedTarget}`;
-                  }
+                  let textContent = getDisplayNodeName(room, language);
+                  if (!textContent) textContent = translateName("Tanpa Nama", language);
                   const longestWordLen = Math.max(...textContent.split(' ').map(w => w.length), 1);
                   const actualUsableWidth = Math.max(10, room.width - 12);
 
@@ -424,11 +421,8 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
               {/* Render Kiosks (biru) dan Pintu Masuk (hijau) */}
               {currentFloorKiosks
                 .map((kiosk) => {
-                  let textContent = translateName(kiosk.name || "Kiosk", language, kiosk.name_en);
-                  if (kiosk.is_connector && kiosk.target_building) {
-                    const translatedTarget = translateName(kiosk.target_building, language);
-                    textContent = language === 'id' ? `Pintu ke ${translatedTarget}` : `Door to ${translatedTarget}`;
-                  }
+                  let textContent = getDisplayNodeName(kiosk, language);
+                  if (!textContent) textContent = "Kiosk";
                   const isPintu = kiosk.name?.toLowerCase().includes('pintu');
                   const fillCol = isPintu ? "#4CAF50" : "#2196F3";
                   const strokeCol = isPintu ? "#2E7D32" : "#0D47A1";

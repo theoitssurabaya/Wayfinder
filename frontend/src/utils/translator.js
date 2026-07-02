@@ -44,3 +44,13 @@ export const translateName = (name, lang, nameEn) => {
 
   return translated;
 };
+
+export const getDisplayNodeName = (node, lang) => {
+  if (!node) return "";
+  let disp = translateName(node.name || node.nama_ruangan || node.id, lang, node.name_en || node.nama_ruangan_en);
+  if (node.is_connector && node.target_building) {
+    const translatedTarget = translateName(node.target_building, lang);
+    disp = lang === 'id' ? `Pintu ke ${translatedTarget}` : `Door to ${translatedTarget}`;
+  }
+  return disp;
+};

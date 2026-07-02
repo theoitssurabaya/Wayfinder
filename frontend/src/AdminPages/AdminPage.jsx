@@ -5,7 +5,7 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 import { collection, onSnapshot, doc, updateDoc, query, orderBy, limit, addDoc, serverTimestamp, deleteDoc, getDocs, where } from "firebase/firestore";
 import { db } from "../firebase";
 import SharedMap from "../components/SharedMap";
-import { translateName } from "../utils/translator";
+import { translateName, getDisplayNodeName } from "../utils/translator";
 import { UAParser } from "ua-parser-js";
 import { AlertDialog } from "../components/Dialogs";
 import LanguageSelector from "../components/LanguageSelector";
@@ -80,7 +80,9 @@ export default function App() {
   const [outputText,  setOutputText]  = useState("");
   const [location,    setLocation]    = useState(""); 
   const [floor,       setFloor]       = useState("Lantai 1");
-  const [floors,      setFloors]      = useState(["Lantai 1"]);
+  const [building,    setBuilding]    = useState("Gedung A");
+  const [buildings,   setBuildings]   = useState(["Gedung A"]);
+  const [floorOrder,  setFloorOrder]  = useState({});
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [lockedKiosk, setLockedKiosk] = useState(localStorage.getItem("locked_kiosk_id") || "");
   const [kioskToLock, setKioskToLock] = useState("");
@@ -178,7 +180,6 @@ export default function App() {
   };
 
   const hasAutoSwitchedFloor = useRef(false);
-  const floorOrderRef = useRef({});
 
   useEffect(() => {
     // Membersihkan semua log lama (lebih dari 1 bulan) di background
@@ -199,67 +200,50 @@ export default function App() {
 
     const unsubscribeKiosks = onSnapshot(collection(db, "Kiosks"), (kioskSnap) => {
       const loadedKiosks = [];
-      const foundFloors = new Set(["Lantai 1"]);
+      const foundBuildings = new Set();
 
       let floorToSwitch = null;
+      let buildingToSwitch = null;
 
       kioskSnap.forEach((docSnap) => {
         const data = docSnap.data();
         loadedKiosks.push({ id: docSnap.id, ...data });
-        if (data.floor) foundFloors.add(data.floor);
+        if (data.building) foundBuildings.add(data.building);
 
         const lockedId = localStorage.getItem("locked_kiosk_id");
-        if (lockedId && docSnap.id === lockedId && data.floor) {
-          floorToSwitch = data.floor;
+        if (lockedId && docSnap.id === lockedId) {
+          if (data.floor) floorToSwitch = data.floor;
+          if (data.building) buildingToSwitch = data.building;
         }
       });
       setKiosks(loadedKiosks);
       
-      setFloors(prev => {
-        const combined = new Set([...prev, ...foundFloors]);
-        return Array.from(combined).sort((a, b) => {
-          const idxA = floorOrderRef.current.indexOf(a);
-          const idxB = floorOrderRef.current.indexOf(b);
-          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-          if (idxA !== -1) return -1;
-          if (idxB !== -1) return 1;
-          return a.localeCompare(b);
-        });
-      });
+      setBuildings(prev => Array.from(new Set([...prev, ...foundBuildings])).sort());
 
       if (floorToSwitch && !hasAutoSwitchedFloor.current) {
         setFloor(floorToSwitch);
+        if (buildingToSwitch) setBuilding(buildingToSwitch);
         hasAutoSwitchedFloor.current = true;
       }
     });
 
 
     const unsubscribeRooms = onSnapshot(collection(db, "Rooms"), (roomSnap) => {
-      const foundFloors = new Set();
+      const foundBuildings = new Set();
       const loadedRooms = [];
 
       roomSnap.forEach((docSnap) => {
         const data = docSnap.data();
-        if (data.floor) foundFloors.add(data.floor);
+        if (data.building) foundBuildings.add(data.building);
         if (data.name && data.name !== "Tanpa Nama") {
-          loadedRooms.push({ id: docSnap.id, name: data.name, name_en: data.name_en, floor: data.floor || "Lantai 1" });
+          loadedRooms.push({ id: docSnap.id, name: data.name, name_en: data.name_en, floor: data.floor || "Lantai 1", building: data.building || "Gedung A" });
         }
       });
 
       loadedRooms.sort((a, b) => a.name.localeCompare(b.name));
       setRooms(loadedRooms);
 
-      setFloors(prev => {
-        const combined = new Set([...prev, ...foundFloors]);
-        return Array.from(combined).sort((a, b) => {
-          const idxA = floorOrderRef.current.indexOf(a);
-          const idxB = floorOrderRef.current.indexOf(b);
-          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-          if (idxA !== -1) return -1;
-          if (idxB !== -1) return 1;
-          return a.localeCompare(b);
-        });
-      });
+      setBuildings(prev => Array.from(new Set([...prev, ...foundBuildings])).sort());
     });
 
 
@@ -291,20 +275,9 @@ export default function App() {
       setActivities(loadedLogs);
     });
 
-
     const unsubscribeConfig = onSnapshot(doc(db, "Settings", "MapConfig"), (docSnap) => {
       if (docSnap.exists() && docSnap.data().floorOrder) {
-        floorOrderRef.current = docSnap.data().floorOrder;
-        setFloors(prev => {
-          return [...prev].sort((a, b) => {
-            const idxA = floorOrderRef.current.indexOf(a);
-            const idxB = floorOrderRef.current.indexOf(b);
-            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-            if (idxA !== -1) return -1;
-            if (idxB !== -1) return 1;
-            return a.localeCompare(b);
-          });
-        });
+        setFloorOrder(docSnap.data().floorOrder);
       }
     });
 
@@ -315,6 +288,24 @@ export default function App() {
       unsubscribeConfig();
     };
   }, []);
+
+  const floors = useMemo(() => {
+    const bFloors = new Set();
+    kiosks.forEach(k => { if (k.building === building && k.floor) bFloors.add(k.floor); });
+    rooms.forEach(r => { if (r.building === building && r.floor) bFloors.add(r.floor); });
+    
+    let arr = Array.from(bFloors);
+    if (arr.length === 0) arr = ["Lantai 1"];
+    return arr.sort((a, b) => {
+      const orderArray = Array.isArray(floorOrder) ? floorOrder : (floorOrder[building] || []);
+      const idxA = orderArray.indexOf(a);
+      const idxB = orderArray.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }, [kiosks, rooms, building, floorOrder]);
 
   const isMountedRef = useRef(true);
   const resetTimeoutRef = useRef(null);
@@ -480,8 +471,8 @@ export default function App() {
       setLockedKiosk(kioskToLock);
       
       const kioskInfo = kiosks.find(k => k.id === kioskToLock);
-      const kioskNameId = kioskInfo?.name ? translateName(kioskInfo.name, 'id', kioskInfo.name_en) : kioskToLock;
-      const kioskNameEn = kioskInfo?.name ? translateName(kioskInfo.name, 'en', kioskInfo.name_en) : kioskToLock;
+      const kioskNameId = kioskInfo?.name ? getDisplayNodeName(kioskInfo, 'id') : kioskToLock;
+      const kioskNameEn = kioskInfo?.name ? getDisplayNodeName(kioskInfo, 'en') : kioskToLock;
       await addActivityLog("Kios Dikunci", "Kiosk Locked", `Mengunci ${kioskNameId}`, `Locked ${kioskNameEn}`);
 
       setIsLockConfirmOpen(false);
@@ -503,8 +494,8 @@ export default function App() {
         await updateDoc(doc(db, "Kiosks", lockedKiosk), { isLocked: false });
         
         const kioskInfo = kiosks.find(k => k.id === lockedKiosk);
-        const kioskNameId = kioskInfo?.name ? translateName(kioskInfo.name, 'id', kioskInfo.name_en) : lockedKiosk;
-        const kioskNameEn = kioskInfo?.name ? translateName(kioskInfo.name, 'en', kioskInfo.name_en) : lockedKiosk;
+        const kioskNameId = kioskInfo?.name ? getDisplayNodeName(kioskInfo, 'id') : lockedKiosk;
+        const kioskNameEn = kioskInfo?.name ? getDisplayNodeName(kioskInfo, 'en') : lockedKiosk;
         await addActivityLog("Kios Dibuka Kunci", "Kiosk Unlocked", `Melepas kunci ${kioskNameId}`, `Unlocked ${kioskNameEn}`);
       } catch (e) {
         console.error(getText('fail_unlock_kiosk'), e);
@@ -580,7 +571,7 @@ export default function App() {
               </svg>
             </div>
             <h3>{getText('confirm_lock_title')}</h3>
-            <p>{getText('are_you_sure_lock')} <strong>{kiosks.find(k => k.id === kioskToLock)?.name ? translateName(kiosks.find(k => k.id === kioskToLock).name, language, kiosks.find(k => k.id === kioskToLock).name_en) : translateName(kioskToLock, language)}</strong>?</p>
+            <p>{getText('are_you_sure_lock')} <strong>{kiosks.find(k => k.id === kioskToLock)?.name ? getDisplayNodeName(kiosks.find(k => k.id === kioskToLock), language) : translateName(kioskToLock, language)}</strong>?</p>
             <div className="confirm-modal-actions">
               <button className="confirm-btn no" onClick={handleLockNo}>{getText('no')}</button>
               <button className="confirm-btn yes" onClick={handleLockYes}>{getText('yes')}</button>
@@ -611,16 +602,52 @@ export default function App() {
       <div className="main-layout">
         <aside className="left-panel admin-sidebar">
           
+          <div className="admin-widget">
+            <h3>{language === 'id' ? 'Gedung' : 'Building'}</h3>
+            <div className="dropdown-wrapper">
+              <select
+                className="dropdown-select route-select"
+                value={building}
+                onChange={(e) => {
+                  const newB = e.target.value;
+                  setBuilding(newB);
+                  const bFloors = new Set();
+                  kiosks.forEach(k => { if (k.building === newB && k.floor) bFloors.add(k.floor); });
+                  rooms.forEach(r => { if (r.building === newB && r.floor) bFloors.add(r.floor); });
+                  let newFloors = Array.from(bFloors);
+                  if (newFloors.length > 0) {
+                    newFloors.sort((a, b) => {
+                      const orderArray = Array.isArray(floorOrder) ? floorOrder : (floorOrder[newB] || []);
+                      const idxA = orderArray.indexOf(a);
+                      const idxB = orderArray.indexOf(b);
+                      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                      if (idxA !== -1) return -1;
+                      if (idxB !== -1) return 1;
+                      return a.localeCompare(b);
+                    });
+                    setFloor(newFloors.includes("Lantai 1") ? "Lantai 1" : newFloors[newFloors.length - 1]);
+                  }
+                }}
+                style={{ width: '100%', padding: '8px', borderRadius: '8px', border: '1.5px solid var(--border)', background: 'var(--white)', fontWeight: 'bold' }}
+              >
+                {buildings.map(b => (
+                  <option key={b} value={b}>{translateName(b, language)}</option>
+                ))}
+              </select>
+              <ChevronIcon />
+            </div>
+          </div>
+
           {/* opsi 2: analitik mini */}
           <div className="admin-widget">
             <h3>{language === 'id' ? 'Statistik Sistem' : 'System Analytics'}</h3>
             <div className="stat-grid">
               <div className="stat-card">
-                <span className="stat-value">{rooms.length}</span>
+                <span className="stat-value">{rooms.filter(r => r.building === building).length}</span>
                 <span className="stat-label">{language === 'id' ? 'Total Ruangan' : 'Total Rooms'}</span>
               </div>
               <div className="stat-card">
-                <span className="stat-value">{kiosks.filter(k => !k.name?.toLowerCase().includes('pintu')).length}</span>
+                <span className="stat-value">{kiosks.filter(k => k.building === building && !k.name?.toLowerCase().includes('pintu')).length}</span>
                 <span className="stat-label">{language === 'id' ? 'Kios Aktif' : 'Active Kiosks'}</span>
               </div>
             </div>
@@ -630,14 +657,14 @@ export default function App() {
           <div className="admin-widget kiosk-manager-widget">
             <h3>{language === 'id' ? 'Manajemen Kios' : 'Kiosk Manager'}</h3>
             <div className="kiosk-list-container">
-              {kiosks.filter(k => !k.name?.toLowerCase().includes('pintu')).length > 0 ? 
-                kiosks.filter(k => !k.name?.toLowerCase().includes('pintu')).map(k => {
+              {kiosks.filter(k => k.building === building && !k.name?.toLowerCase().includes('pintu')).length > 0 ? 
+                kiosks.filter(k => k.building === building && !k.name?.toLowerCase().includes('pintu')).map(k => {
                 const isLockedByMe = lockedKiosk === k.id;
                 const isLockedByOther = !isLockedByMe && k.isLocked === true;
                 return (
                   <div key={k.id} className={`kiosk-list-item ${isLockedByMe ? 'locked' : ''} ${isLockedByOther ? 'locked-other' : ''}`}>
                     <div className="kiosk-info">
-                      <span className="kiosk-name">{translateName(k.name, language, k.name_en)}</span>
+                      <span className="kiosk-name">{getDisplayNodeName(k, language)}</span>
                       <span className="kiosk-floor">{translateName(k.floor, language)}</span>
                     </div>
                     <div className="kiosk-action">
@@ -805,6 +832,7 @@ export default function App() {
                   path={pathData} 
                   activePath={activePath} 
                   currentFloor={floor} 
+                  currentBuilding={building}
                   onRoomClick={(room) => {
                       if (floors.includes(`submap_${room.id}`)) {
                           setFloor(`submap_${room.id}`);

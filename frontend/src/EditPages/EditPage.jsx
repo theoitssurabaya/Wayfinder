@@ -449,7 +449,7 @@ export default function EditPage() {
         });
         
         setFloors(initialFloors);
-        setActiveEditFloor(initialFloors[0] || "Lantai 1");
+        setActiveEditFloor(initialFloors.includes("Lantai 1") ? "Lantai 1" : (initialFloors[initialFloors.length - 1] || "Lantai 1"));
       } catch (error) {
         console.error("Gagal mengambil data:", error);
       }
@@ -478,7 +478,7 @@ export default function EditPage() {
     });
     
     setFloors(newFloors);
-    setActiveEditFloor(newFloors[0]);
+    setActiveEditFloor(newFloors.includes("Lantai 1") ? "Lantai 1" : newFloors[newFloors.length - 1]);
   };
 
   useEffect(() => {
@@ -626,7 +626,7 @@ export default function EditPage() {
           [activeEditBuilding]: currentOrder.filter(f => f !== floorToDelete)
         };
         
-        setActiveEditFloor(remainingFloors[0]);
+        setActiveEditFloor(remainingFloors.includes("Lantai 1") ? "Lantai 1" : remainingFloors[remainingFloors.length - 1]);
         setSelectedId(null);
       }
     });
@@ -1551,7 +1551,7 @@ export default function EditPage() {
                 }}
                 className="template-card template-connector"
               >
-                <div className="template-icon">🌉</div>
+                <div className="template-icon">🚪</div>
                 <p>{language === 'id' ? 'Pintu Gedung' : 'Building Door'}</p>
               </div>
             </div>
