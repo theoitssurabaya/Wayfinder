@@ -73,7 +73,9 @@ export default function App() {
   const [isQrModalOpen, setIsQrModalOpen] = useState(false);
 
   const [floor, setFloor] = useState("Lantai 1");
-  const [floors, setFloors] = useState(["Lantai 1"]);
+  const [floorOrder, setFloorOrder] = useState({});
+  const [building, setBuilding] = useState("Gedung A");
+  const [buildings, setBuildings] = useState(["Gedung A"]);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -194,7 +196,11 @@ export default function App() {
       'password': { id: 'Kata Sandi', en: 'Password' },
       'login_btn': { id: 'MASUK', en: 'LOGIN' },
       'admin_login_subtitle': { id: 'Silahkan masukkan akun administrator Anda', en: 'Please enter your administrator account' },
-      'email_placeholder': { id: 'Contoh: admin@email.com', en: 'Example: admin@email.com' }
+      'email_placeholder': { id: 'Contoh: admin@email.com', en: 'Example: admin@email.com' },
+      'session_expired_title': { id: 'Sesi Navigasi Berakhir', en: 'Navigation Session Expired' },
+      'session_expired_desc': { id: 'Tautan rute ini sudah kedaluwarsa. Silakan pindai ulang QR Code dari Kiosk terdekat jika Anda membutuhkan panduan lagi.', en: 'This route link has expired. Please scan the QR Code again from the nearest Kiosk if you need guidance.' },
+      'scan_qr_desc': { id: 'Pindai menggunakan kamera HP Anda. Pastikan HP dan Kiosk terhubung ke WiFi yang sama.', en: 'Scan using your phone camera. Make sure both devices are on the same WiFi.' },
+      'show_qr_btn': { id: 'Tampilkan QR Code Navigasi', en: 'Show Navigation QR Code' }
     };
     return dict[key] ? dict[key][language] : key;
   };
@@ -280,42 +286,38 @@ export default function App() {
   }, [language]);
 
   const hasAutoSwitchedFloor = useRef(false);
-  const floorOrderRef = useRef([]);
+  const floorOrderRef = useRef({});
 
   useEffect(() => {
 
     const unsubscribeKiosks = onSnapshot(collection(db, "Kiosks"), (kioskSnap) => {
       const loadedKiosks = [];
       const foundFloors = new Set(["Lantai 1"]);
+      const foundBuildings = new Set(["Gedung A"]);
 
       let floorToSwitch = null;
+      let buildingToSwitch = null;
 
       kioskSnap.forEach((docSnap) => {
         const data = docSnap.data();
         loadedKiosks.push({ id: docSnap.id, ...data });
         if (data.floor) foundFloors.add(data.floor);
+        if (data.building) foundBuildings.add(data.building);
 
         const lockedId = localStorage.getItem("locked_kiosk_id");
-        if (lockedId && docSnap.id === lockedId && data.floor) {
-          floorToSwitch = data.floor;
+        if (lockedId && docSnap.id === lockedId) {
+          if (data.floor) floorToSwitch = data.floor;
+          if (data.building) buildingToSwitch = data.building;
         }
       });
       setKiosks(loadedKiosks);
+      setBuildings(Array.from(foundBuildings).sort());
 
-      setFloors(prev => {
-        const combined = new Set([...prev, ...foundFloors]);
-        return Array.from(combined).sort((a, b) => {
-          const idxA = floorOrderRef.current.indexOf(a);
-          const idxB = floorOrderRef.current.indexOf(b);
-          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-          if (idxA !== -1) return -1;
-          if (idxB !== -1) return 1;
-          return a.localeCompare(b);
-        });
-      });
+      // floors dynamically calculated using useMemo
 
       if (floorToSwitch && !hasAutoSwitchedFloor.current) {
         setFloor(floorToSwitch);
+        if (buildingToSwitch) setBuilding(buildingToSwitch);
         hasAutoSwitchedFloor.current = true;
       }
     });
@@ -323,47 +325,35 @@ export default function App() {
 
     const unsubscribeRooms = onSnapshot(collection(db, "Rooms"), (roomSnap) => {
       const foundFloors = new Set();
+      const foundBuildings = new Set();
       const loadedRooms = [];
 
       roomSnap.forEach((docSnap) => {
         const data = docSnap.data();
         if (data.floor) foundFloors.add(data.floor);
+        if (data.building) foundBuildings.add(data.building);
 
         if (data.name && data.name !== "Tanpa Nama" && data.name.toLowerCase() !== "pintu masuk") {
-          loadedRooms.push({ id: docSnap.id, name: data.name, name_en: data.name_en, floor: data.floor || "Lantai 1" });
+          loadedRooms.push({ id: docSnap.id, name: data.name, name_en: data.name_en, floor: data.floor || "Lantai 1", building: data.building || "Gedung A" });
         }
       });
 
       loadedRooms.sort((a, b) => a.name.localeCompare(b.name));
       setRooms(loadedRooms);
-
-      setFloors(prev => {
-        const combined = new Set([...prev, ...foundFloors]);
-        return Array.from(combined).sort((a, b) => {
-          const idxA = floorOrderRef.current.indexOf(a);
-          const idxB = floorOrderRef.current.indexOf(b);
-          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-          if (idxA !== -1) return -1;
-          if (idxB !== -1) return 1;
-          return a.localeCompare(b);
-        });
+      
+      setBuildings(prev => {
+        const combined = new Set([...prev, ...foundBuildings]);
+        return Array.from(combined).sort();
       });
+
+      // floors dynamically calculated
     });
 
 
     const unsubscribeConfig = onSnapshot(doc(db, "Settings", "MapConfig"), (docSnap) => {
       if (docSnap.exists() && docSnap.data().floorOrder) {
         floorOrderRef.current = docSnap.data().floorOrder;
-        setFloors(prev => {
-          return [...prev].sort((a, b) => {
-            const idxA = floorOrderRef.current.indexOf(a);
-            const idxB = floorOrderRef.current.indexOf(b);
-            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-            if (idxA !== -1) return -1;
-            if (idxB !== -1) return 1;
-            return a.localeCompare(b);
-          });
-        });
+        setFloorOrder(docSnap.data().floorOrder);
       }
     });
 
@@ -373,6 +363,24 @@ export default function App() {
       unsubscribeConfig();
     };
   }, []);
+
+  const floors = useMemo(() => {
+    const bFloors = new Set();
+    kiosks.forEach(k => { if (k.building === building && k.floor) bFloors.add(k.floor); });
+    rooms.forEach(r => { if (r.building === building && r.floor) bFloors.add(r.floor); });
+    
+    let arr = Array.from(bFloors);
+    if (arr.length === 0) arr = ["Lantai 1"];
+    return arr.sort((a, b) => {
+      const orderArray = Array.isArray(floorOrder) ? floorOrder : (floorOrder[building] || []);
+      const idxA = orderArray.indexOf(a);
+      const idxB = orderArray.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+  }, [kiosks, rooms, building, floorOrder]);
 
   const isMountedRef = useRef(true);
   const resetTimeoutRef = useRef(null);
@@ -439,6 +447,9 @@ export default function App() {
           if (step.floor) {
             setFloor(step.floor);
           }
+          if (step.building) {
+            setBuilding(step.building);
+          }
         };
 
         utterance.onend = () => {
@@ -464,6 +475,7 @@ export default function App() {
               }
 
               setFloor("Lantai 1");
+              setBuilding("Gedung A");
               setPathData([]);
               setNavigationSteps([]);
               setActiveStepIndex(-1);
@@ -556,6 +568,7 @@ export default function App() {
           const isMob = new URLSearchParams(window.location.search).get("mobile") === "true";
           if (isMob) {
             if (data.langkah_navigasi[0].floor) setFloor(data.langkah_navigasi[0].floor);
+            if (data.langkah_navigasi[0].building) setBuilding(data.langkah_navigasi[0].building);
           } else {
             speakSteps(data.langkah_navigasi, resumeStepIndex, currentLang);
           }
@@ -565,6 +578,7 @@ export default function App() {
 
           if (data.jalur_koordinat && data.jalur_koordinat.length > 0 && data.jalur_koordinat[0].floor) {
             setFloor(data.jalur_koordinat[0].floor);
+            if (data.jalur_koordinat[0].building) setBuilding(data.jalur_koordinat[0].building);
           }
 
           const isMob = new URLSearchParams(window.location.search).get("mobile") === "true";
@@ -587,8 +601,13 @@ export default function App() {
     if (activeStepIndex === -1 || !navigationSteps.length || !pathData.length) return null;
     const startIndex = activeStepIndex === 0 ? 0 : navigationSteps[activeStepIndex - 1].index_akhir;
     const endIndex = navigationSteps[activeStepIndex].index_akhir;
-    return pathData.slice(startIndex, endIndex + 1);
-  }, [pathData, navigationSteps, activeStepIndex]);
+    const rawPath = pathData.slice(startIndex, endIndex + 1);
+    return rawPath.filter(p => (p.building || "Gedung A") === building && p.floor === floor);
+  }, [pathData, navigationSteps, activeStepIndex, building, floor]);
+
+  const filteredPathData = useMemo(() => {
+    return pathData.filter(p => (p.building || "Gedung A") === building && p.floor === floor);
+  }, [pathData, building, floor]);
 
   const handleLogin = async () => {
     const u = username.trim();
@@ -618,9 +637,9 @@ export default function App() {
   if (isSessionExpired) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)', color: 'var(--text-main)', textAlign: 'center', padding: '20px' }}>
-        <h1 style={{ fontSize: '24px', color: '#e74c3c' }}>Sesi Navigasi Berakhir</h1>
+        <h1 style={{ fontSize: '24px', color: '#e74c3c' }}>{getText('session_expired_title')}</h1>
         <p style={{ marginTop: '10px', fontSize: '16px', maxWidth: '400px', lineHeight: '1.5' }}>
-          Tautan rute ini sudah kedaluwarsa. Silakan pindai ulang QR Code dari Kiosk terdekat jika Anda membutuhkan panduan lagi.
+          {getText('session_expired_desc')}
         </p>
       </div>
     );
@@ -746,7 +765,7 @@ export default function App() {
               />
             </div>
             <p style={{ marginTop: "20px", fontSize: "13px", color: "var(--text-muted)" }}>
-              Pindai menggunakan kamera HP Anda. Pastikan HP dan Kiosk terhubung ke WiFi yang sama.
+              {getText('scan_qr_desc')}
             </p>
           </div>
         </div>
@@ -783,6 +802,19 @@ export default function App() {
             <>
               <div className="route-planner-container">
                 <div className="route-planner-timeline">
+                  <div className="timeline-icon-target" title="Building">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                      <line x1="9" y1="6" x2="9" y2="6.01"></line>
+                      <line x1="15" y1="6" x2="15" y2="6.01"></line>
+                      <line x1="9" y1="10" x2="9" y2="10.01"></line>
+                      <line x1="15" y1="10" x2="15" y2="10.01"></line>
+                      <line x1="9" y1="14" x2="9" y2="14.01"></line>
+                      <line x1="15" y1="14" x2="15" y2="14.01"></line>
+                      <path d="M9 18h6"></path>
+                    </svg>
+                  </div>
+                  <div className="timeline-line"></div>
                   <div className="timeline-icon-target">
                     <TargetIcon />
                   </div>
@@ -792,6 +824,39 @@ export default function App() {
                   </div>
                 </div>
                 <div className="route-planner-inputs">
+                  {/* dropdown building */}
+                  <div className="dropdown-wrapper kiosk-input">
+                    <select
+                      className="dropdown-select route-select"
+                      value={building}
+                      onChange={(e) => {
+                        const newB = e.target.value;
+                        setBuilding(newB);
+                        const bFloors = new Set();
+                        kiosks.forEach(k => { if (k.building === newB && k.floor && !k.floor.startsWith("submap_")) bFloors.add(k.floor); });
+                        rooms.forEach(r => { if (r.building === newB && r.floor && !r.floor.startsWith("submap_")) bFloors.add(r.floor); });
+                        let newFloors = Array.from(bFloors);
+                        if (newFloors.length > 0) {
+                          newFloors.sort((a, b) => {
+                            const orderArray = Array.isArray(floorOrder) ? floorOrder : (floorOrder[newB] || []);
+                            const idxA = orderArray.indexOf(a);
+                            const idxB = orderArray.indexOf(b);
+                            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                            if (idxA !== -1) return -1;
+                            if (idxB !== -1) return 1;
+                            return a.localeCompare(b);
+                          });
+                          setFloor(newFloors[0]);
+                        }
+                      }}
+                    >
+                      {buildings.map(b => (
+                        <option key={b} value={b}>{translateName(b, language)}</option>
+                      ))}
+                    </select>
+                    <ChevronIcon />
+                  </div>
+
                   {/* dropdown kiosk atau info kiosk terkunci */}
                   {isKioskLocked ? (
                     <div className="dropdown-wrapper kiosk-input" style={{ padding: "12px", background: "var(--white)", borderRadius: "8px", border: "1.5px solid var(--border)", color: "var(--text-main)", fontWeight: "600", fontSize: "14px", display: "flex", alignItems: "center", gap: "8px" }}>
@@ -965,7 +1030,12 @@ export default function App() {
                         onClick={() => {
                           const newIdx = Math.max(0, activeStepIndex - 1);
                           setActiveStepIndex(newIdx);
-                          if (navigationSteps[newIdx]?.floor) setFloor(navigationSteps[newIdx].floor);
+                          if (navigationSteps[newIdx]?.floor) {
+                            setFloor(navigationSteps[newIdx].floor);
+                          }
+                          if (navigationSteps[newIdx]?.building) {
+                            setBuilding(navigationSteps[newIdx].building);
+                          }
                         }}
                         disabled={activeStepIndex === 0}
                         style={{ padding: '8px 15px', borderRadius: '8px', border: 'none', background: activeStepIndex === 0 ? (isDarkMode ? '#334155' : '#ccc') : 'var(--blue-primary)', color: 'white', fontWeight: 'bold' }}
@@ -979,7 +1049,12 @@ export default function App() {
                         onClick={() => {
                           const newIdx = Math.min(navigationSteps.length - 1, activeStepIndex + 1);
                           setActiveStepIndex(newIdx);
-                          if (navigationSteps[newIdx]?.floor) setFloor(navigationSteps[newIdx].floor);
+                          if (navigationSteps[newIdx]?.floor) {
+                            setFloor(navigationSteps[newIdx].floor);
+                          }
+                          if (navigationSteps[newIdx]?.building) {
+                            setBuilding(navigationSteps[newIdx].building);
+                          }
                         }}
                         disabled={activeStepIndex === navigationSteps.length - 1}
                         style={{ padding: '8px 15px', borderRadius: '8px', border: 'none', background: activeStepIndex === navigationSteps.length - 1 ? (isDarkMode ? '#334155' : '#ccc') : 'var(--blue-primary)', color: 'white', fontWeight: 'bold' }}
@@ -1009,7 +1084,7 @@ export default function App() {
               onClick={() => setIsQrModalOpen(true)}
               style={{ marginTop: "15px" }}
             >
-              Tampilkan QR Code Navigasi
+              {getText('show_qr_btn')}
             </button>
           )}
 
@@ -1128,11 +1203,12 @@ export default function App() {
             <TransformComponent wrapperStyle={{ width: "100%", height: "100%", cursor: "grab" }} contentStyle={{ width: "100%", height: "100vh" }}>
               <div className="map-content" style={{ width: "100%", height: "100%" }}>
                 <SharedMap
-                  path={pathData}
+                  path={filteredPathData}
                   activePath={activePath}
                   activeStepIndex={activeStepIndex}
                   activeStepText={activeStepIndex >= 0 && navigationSteps[activeStepIndex] ? navigationSteps[activeStepIndex].teks : ""}
                   currentFloor={floor}
+                  currentBuilding={building}
                   language={language}
                   selectedKiosk={location}
                   isDarkMode={isDarkMode}

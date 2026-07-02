@@ -60,6 +60,7 @@ def sinkronisasi_peta(data):
                         door_coords.append((cx, gy + gh//2))
                 
                 floor = item.get("floor", "Lantai 1")
+                building = item.get("building", "Gedung A")
                 
                 temp_ruangan[room_id] = {
                     "x": gx,
@@ -70,13 +71,15 @@ def sinkronisasi_peta(data):
                     "name": room_name,
                     "name_en": item.get("name_en", ""),
                     "floor": floor,
+                    "building": building,
                     "type": item.get("type", "room"),
                     "keywords": item.get("keywords", [])
                 }
                 
-                if floor not in temp_grid:
-                    temp_grid[floor] = [[0 for _ in range(waypoint_graph.GRID_WIDTH)] for _ in range(waypoint_graph.GRID_HEIGHT)]
-                grid = temp_grid[floor]
+                grid_key = f"{building}_{floor}"
+                if grid_key not in temp_grid:
+                    temp_grid[grid_key] = [[0 for _ in range(waypoint_graph.GRID_WIDTH)] for _ in range(waypoint_graph.GRID_HEIGHT)]
+                grid = temp_grid[grid_key]
                 
                 for dy in range(gh):
                     for dx in range(gw):

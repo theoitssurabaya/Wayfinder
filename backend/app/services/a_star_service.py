@@ -3,7 +3,8 @@ from app.core.state import get_grid_map, GRID_WIDTH, GRID_HEIGHT, RUANGAN_GRID, 
 
 def _a_star_single_floor(start_node, target_node):
     floor = start_node.get("floor", "Lantai 1")
-    grid = get_grid_map(floor)
+    building = start_node.get("building", "Gedung Utama")
+    grid = get_grid_map(floor, building)
     
     def get_valid_coords(node):
         coords = set()
@@ -71,9 +72,9 @@ def _a_star_single_floor(start_node, target_node):
             jalur = []
             curr = current
             while curr in came_from:
-                jalur.append({"x": curr[0], "y": curr[1], "floor": floor})
+                jalur.append({"x": curr[0], "y": curr[1], "floor": floor, "building": building})
                 curr = came_from[curr]
-            jalur.append({"x": curr[0], "y": curr[1], "floor": floor})
+            jalur.append({"x": curr[0], "y": curr[1], "floor": floor, "building": building})
             jalur.reverse()
             return jalur
             
@@ -109,10 +110,10 @@ def _a_star_single_floor(start_node, target_node):
                         
     return None
 
-def cari_pasangan_lift_terbaik(start_node, target_node, curr_floor, target_floor):
+def cari_pasangan_lift_terbaik(start_node, target_node, curr_floor, target_floor, building="Gedung Utama"):
     from app.core.state import hitung_manhattan
-    lifts_start = [r for r in RUANGAN_GRID.values() if r.get("floor") == curr_floor and ("lift" in r.get("name", "").lower() or "elevator" in r.get("name", "").lower()) and "tangga" not in r.get("name", "").lower() and "stairs" not in r.get("name", "").lower()]
-    lifts_target = [r for r in RUANGAN_GRID.values() if r.get("floor") == target_floor and ("lift" in r.get("name", "").lower() or "elevator" in r.get("name", "").lower()) and "tangga" not in r.get("name", "").lower() and "stairs" not in r.get("name", "").lower()]
+    lifts_start = [r for r in RUANGAN_GRID.values() if r.get("floor") == curr_floor and r.get("building", "Gedung Utama") == building and ("lift" in r.get("name", "").lower() or "elevator" in r.get("name", "").lower()) and "tangga" not in r.get("name", "").lower() and "stairs" not in r.get("name", "").lower()]
+    lifts_target = [r for r in RUANGAN_GRID.values() if r.get("floor") == target_floor and r.get("building", "Gedung Utama") == building and ("lift" in r.get("name", "").lower() or "elevator" in r.get("name", "").lower()) and "tangga" not in r.get("name", "").lower() and "stairs" not in r.get("name", "").lower()]
     
     if not lifts_start or not lifts_target:
         return None, None
@@ -141,6 +142,55 @@ def get_pintu_masuk(floor_name):
             if "pintu masuk" in nama or "entrance" in nama:
                 return room
     return None
+
+def get_pintu_gedung(building_name, target_building=None):
+    if target_building:
+        for r_id, room in RUANGAN_GRID.items():
+            if room.get("building", "Gedung Utama") == building_name:
+                if room.get("is_connector") and room.get("target_building") == target_building:
+                    return room
+
+    for r_id, room in RUANGAN_GRID.items():
+        if room.get("building", "Gedung Utama") == building_name:
+            nama = room.get("name", "").lower()
+            if "pintu" in nama or "entrance" in nama or "exit" in nama or "utama" in nama:
+                return room
+    return None
+
+def _cari_rute_antar_gedung(start_building, target_building):
+    from collections import deque
+    
+    graph = {}
+    for r_id, room in RUANGAN_GRID.items():
+        if room.get("is_connector"):
+            b_from = room.get("building", "Gedung Utama")
+            b_to = room.get("target_building")
+            if b_from and b_to:
+                if b_from not in graph: graph[b_from] = []
+                graph[b_from].append({"room": room, "target": b_to})
+                
+    if start_building not in graph:
+        return [(start_building, get_pintu_gedung(start_building, target_building), target_building, get_pintu_gedung(target_building, start_building))]
+        
+    queue = deque([(start_building, [])])
+    visited = {start_building}
+    
+    while queue:
+        curr_b, path = queue.popleft()
+        if curr_b == target_building:
+            return path
+            
+        if curr_b in graph:
+            for edge in graph[curr_b]:
+                nxt_b = edge["target"]
+                if nxt_b not in visited:
+                    visited.add(nxt_b)
+                    door_out = edge["room"]
+                    door_in = get_pintu_gedung(nxt_b, curr_b)
+                    new_path = path + [(curr_b, door_out, nxt_b, door_in)]
+                    queue.append((nxt_b, new_path))
+                    
+    return [(start_building, get_pintu_gedung(start_building, target_building), target_building, get_pintu_gedung(target_building, start_building))]
 
 def cari_rute_grid(start_id, target_id, language="id"):
     if start_id not in RUANGAN_GRID or target_id not in RUANGAN_GRID:
@@ -179,6 +229,7 @@ def cari_rute_grid(start_id, target_id, language="id"):
     # Tentukan target antara (apakah target di sub-map?).
     target_parent_room = None
     target_pintu_masuk = None
+    actual_target_building = target_node.get("building", "Gedung Utama")
     actual_target_floor = target_floor
     
     if target_floor.startswith("submap_") and curr_floor != target_floor:
@@ -190,39 +241,52 @@ def cari_rute_grid(start_id, target_id, language="id"):
             msg = "Sub-Map tujuan tidak memiliki Pintu Masuk atau Induk yang valid." if language == "id" else "Destination Sub-Map does not have a valid Entrance or Parent room."
             return {"status": "error", "pesan": msg}
         actual_target_floor = target_parent_room.get("floor", "Lantai 1")
+        actual_target_building = target_parent_room.get("building", "Gedung Utama")
+
+    # Helper untuk jalan dalam satu gedung
+    def _jalan_dalam_gedung(start_n, target_n, s_floor, t_floor, b_name):
+        res = []
+        c_node = start_n
+        c_floor = s_floor
+        if c_floor != t_floor:
+            lift_s, lift_t = cari_pasangan_lift_terbaik(c_node, target_n, c_floor, t_floor, b_name)
+            if not lift_s or not lift_t:
+                return None, f"Tidak ditemukan Lift/Tangga antar lantai di {b_name}."
+            jalur_l = _a_star_single_floor(c_node, lift_s)
+            if not jalur_l: return None, f"Rute buntu menuju lift di {b_name}."
+            res.extend(jalur_l)
+            c_node = lift_t
+            c_floor = t_floor
         
-    # Pindah lantai via Lift (jika beda lantai standar).
-    if curr_floor != actual_target_floor:
-        temp_target = target_parent_room if target_parent_room else target_node
-        lift_start, lift_target = cari_pasangan_lift_terbaik(curr_node, temp_target, curr_floor, actual_target_floor)
-        
-        if not lift_start or not lift_target:
-            clean_curr = get_clean_floor_name(curr_floor, language)
-            clean_target = get_clean_floor_name(actual_target_floor, language)
-            if language == "id":
-                msg = f"Tidak ditemukan Lift/Tangga antar {clean_curr} dan {clean_target}."
-            else:
-                msg = f"No Elevator/Stairs found between {clean_curr} and {clean_target}."
-            return {"status": "error", "pesan": msg}
-            
-        jalur_1 = _a_star_single_floor(curr_node, lift_start)
-        if not jalur_1:
-            clean_curr = get_clean_floor_name(curr_floor, language)
-            msg = f"Rute buntu menuju lift di {clean_curr}." if language == "id" else f"Dead end route to elevator on {clean_curr}."
-            return {"status": "error", "pesan": msg}
-        phases.extend(jalur_1)
-        
-        curr_node = lift_target
-        curr_floor = actual_target_floor
-        
-    # Berjalan di lantai tujuan menuju target akhir / ruangan induk target.
+        jalur_w = _a_star_single_floor(c_node, target_n)
+        if not jalur_w: return None, f"Rute buntu menuju tujuan di {b_name}."
+        res.extend(jalur_w)
+        return res, None
+
+    curr_building = curr_node.get("building", "Gedung Utama")
     temp_target = target_parent_room if target_parent_room else target_node
-    jalur_2 = _a_star_single_floor(curr_node, temp_target)
-    if not jalur_2:
-        clean_curr = get_clean_floor_name(curr_floor, language)
-        msg = f"Rute buntu menuju tujuan di {clean_curr}." if language == "id" else f"Dead end route to destination on {clean_curr}."
-        return {"status": "error", "pesan": msg}
-    phases.extend(jalur_2)
+
+    if curr_building != actual_target_building:
+        building_path = _cari_rute_antar_gedung(curr_building, actual_target_building)
+        if not building_path:
+            return {"status": "error", "pesan": "Tidak ada rute antar gedung yang tersedia." if language == "id" else "No building route available."}
+            
+        for step in building_path:
+            b_from, door_s, b_to, door_t = step
+            if not door_s or not door_t:
+                return {"status": "error", "pesan": f"Pintu penghubung dari {b_from} ke {b_to} tidak ditemukan." if language == "id" else f"Connector door from {b_from} to {b_to} not found."}
+                
+            r1, err1 = _jalan_dalam_gedung(curr_node, door_s, curr_floor, door_s.get("floor", "Lantai 1"), curr_building)
+            if err1: return {"status": "error", "pesan": err1}
+            phases.extend(r1)
+            
+            curr_node = door_t
+            curr_floor = door_t.get("floor", "Lantai 1")
+            curr_building = b_to
+        
+    r2, err2 = _jalan_dalam_gedung(curr_node, temp_target, curr_floor, actual_target_floor, curr_building)
+    if err2: return {"status": "error", "pesan": err2}
+    phases.extend(r2)
     
     # Masuk ke sub-map tujuan (jika ada).
     if target_parent_room:
@@ -332,6 +396,7 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
     langkah = []
     current_dir = None
     is_after_transition = False
+    last_transition_type = None
 
     def get_direction(p1, p2):
         if p2["x"] > p1["x"]: return 'Kanan'
@@ -387,6 +452,23 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
         p1 = path[i]
         p2 = path[i + 1]
         
+        # Pindah Gedung!
+        if p1.get("building") != p2.get("building"):
+            b1 = p1.get("building", "Gedung Utama")
+            b2 = p2.get("building", "Gedung Utama")
+            teks_transisi = f"Melewati Pintu Penghubung, keluar dari {b1} dan menuju ke {b2}." if language == "id" else f"Go through the Connector Door, exit {b1} and proceed to {b2}."
+            
+            langkah.append({
+                "teks": teks_transisi,
+                "index_akhir": i,
+                "floor": p1["floor"],
+                "building": p1.get("building")
+            })
+            current_dir = None
+            is_after_transition = True
+            last_transition_type = 'building'
+            continue
+
         # Pindah ruangan / lantai!
         if p1["floor"] != p2["floor"]:
             if p2["floor"].startswith("submap_"):
@@ -404,10 +486,12 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
             langkah.append({
                 "teks": teks_transisi,
                 "index_akhir": i,
-                "floor": p1["floor"]  # Masih di floor sebelumnya untuk memicu transisi di UI.
+                "floor": p1["floor"],
+                "building": p1.get("building")
             })
             current_dir = None
             is_after_transition = True
+            last_transition_type = 'floor'
             continue
             
         dir = get_direction(p1, p2)
@@ -428,10 +512,14 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
                     if language == "id": prefix = f"Setelah masuk,"
                     else: prefix = f"After entering,"
                 else:
-                    if language == "id": prefix = f"Setelah keluar di {p1['floor']},"
-                    else: 
-                        t_floor1 = get_translated_floor(p1['floor'], language)
-                        prefix = f"After exiting at {t_floor1},"
+                    if last_transition_type == 'building':
+                        if language == "id": prefix = f"Setelah melewati pintu penghubung,"
+                        else: prefix = f"After passing the connector door,"
+                    else:
+                        if language == "id": prefix = f"Setelah keluar di {p1['floor']},"
+                        else: 
+                            t_floor1 = get_translated_floor(p1['floor'], language)
+                            prefix = f"After exiting at {t_floor1},"
                 is_after_transition = False
             else:
                 prefix = ""
@@ -463,7 +551,8 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
             langkah.append({
                 "teks": teks,
                 "index_akhir": i,
-                "floor": p1["floor"]
+                "floor": p1["floor"],
+                "building": p1.get("building", "Gedung Utama")
             })
             
             current_dir = dir
@@ -492,8 +581,12 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
                 if language == "id": teks_akhir = f"Setelah masuk, jalan lurus ke arah {current_dir.lower() if current_dir else ''} dan Anda akan sampai di {target_name}."
                 else: teks_akhir = f"After entering, go straight {'up' if current_dir=='Atas' else 'down' if current_dir=='Bawah' else 'right' if current_dir=='Kanan' else 'left'} and you will arrive at {target_name}."
             else:
-                if language == "id": teks_akhir = f"Dari lift di {path[-1]['floor']}, jalan lurus ke arah {current_dir.lower() if current_dir else ''} dan Anda akan sampai di {target_name}."
-                else: teks_akhir = f"From the lift at {get_translated_floor(path[-1]['floor'], language)}, walk straight {'up' if current_dir=='Atas' else 'down' if current_dir=='Bawah' else 'right' if current_dir=='Kanan' else 'left'} and you will arrive at {target_name}."
+                if last_transition_type == 'building':
+                    if language == "id": teks_akhir = f"Setelah keluar dari pintu penghubung di {path[-1]['floor']}, jalan lurus ke arah {current_dir.lower() if current_dir else ''} dan Anda akan sampai di {target_name}."
+                    else: teks_akhir = f"After exiting the connector door at {get_translated_floor(path[-1]['floor'], language)}, walk straight {'up' if current_dir=='Atas' else 'down' if current_dir=='Bawah' else 'right' if current_dir=='Kanan' else 'left'} and you will arrive at {target_name}."
+                else:
+                    if language == "id": teks_akhir = f"Dari lift di {path[-1]['floor']}, jalan lurus ke arah {current_dir.lower() if current_dir else ''} dan Anda akan sampai di {target_name}."
+                    else: teks_akhir = f"From the lift at {get_translated_floor(path[-1]['floor'], language)}, walk straight {'up' if current_dir=='Atas' else 'down' if current_dir=='Bawah' else 'right' if current_dir=='Kanan' else 'left'} and you will arrive at {target_name}."
     else:
         target_room_obj = RUANGAN_GRID.get(target_id)
         
@@ -530,7 +623,8 @@ def generate_navigation_text(path, start_id, target_id, language="id"):
     langkah.append({
         "teks": teks_akhir,
         "index_akhir": len(path) - 1,
-        "floor": path[-1]["floor"]
+        "floor": path[-1]["floor"],
+        "building": path[-1].get("building", "Gedung Utama")
     })
 
     return langkah

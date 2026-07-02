@@ -19,7 +19,8 @@ export const translateName = (name, lang, nameEn) => {
       }
     }
 
-
+    // Ubah Gedung -> Building
+    translated = translated.replace(/Gedung/i, 'Building');
   } else if (lang === 'id') {
 
 
@@ -37,7 +38,8 @@ export const translateName = (name, lang, nameEn) => {
       translated = translated.replace(/Floor\s+(\d+)/i, `Lantai $1`);
     }
 
-
+    // Ubah Building -> Gedung
+    translated = translated.replace(/Building/i, 'Gedung');
   }
 
   return translated;

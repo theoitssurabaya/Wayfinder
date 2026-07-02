@@ -178,7 +178,7 @@ export default function App() {
   };
 
   const hasAutoSwitchedFloor = useRef(false);
-  const floorOrderRef = useRef([]);
+  const floorOrderRef = useRef({});
 
   useEffect(() => {
     // Membersihkan semua log lama (lebih dari 1 bulan) di background

@@ -14,7 +14,8 @@ if GEMINI_API_KEY:
 
 print("Memuat mesin NLP (Sentence Transformers)...")
 # Menggunakan model multilingual MPNet yang lebih pintar dan akurat untuk semantik.
-model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')
+# Force CPU to prevent CUDA OOM errors during uvicorn --reload (GPU too small for multiple instances).
+model = SentenceTransformer('paraphrase-multilingual-mpnet-base-v2', device='cpu')
 
 DATABASE_RUANGAN = {}
 daftar_nama_ruangan = []

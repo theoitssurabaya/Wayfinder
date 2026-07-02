@@ -30,7 +30,11 @@ const ElementShape = React.memo(({ shapeProps, isSelected, onSelect, onChange, s
   };
 
   // Rumus baru: auto shrink font.
-  const textContent = translateName(shapeProps.name || (shapeProps.type === 'kiosk' ? 'Kiosk' : 'Tanpa Nama'), language, shapeProps.name_en);
+  let textContent = translateName(shapeProps.name || (shapeProps.type === 'kiosk' ? 'Kiosk' : 'Tanpa Nama'), language, shapeProps.name_en);
+  if (shapeProps.is_connector && shapeProps.target_building) {
+    const translatedTarget = translateName(shapeProps.target_building, language);
+    textContent = language === 'id' ? `Pintu ke ${translatedTarget}` : `Door to ${translatedTarget}`;
+  }
   const longestWordLen = Math.max(...textContent.split(' ').map(w => w.length), 1);
   const actualUsableWidth = Math.max(10, shapeProps.width - 12);
 
@@ -220,10 +224,14 @@ export default function EditPage() {
 
   const [floors, setFloors] = useState(["Lantai 1"]);
   const [activeEditFloor, setActiveEditFloor] = useState("Lantai 1");
+  const [buildings, setBuildings] = useState(["Gedung A"]);
+  const [activeEditBuilding, setActiveEditBuilding] = useState("Gedung A");
   const [isFloorDropdownOpen, setIsFloorDropdownOpen] = useState(false);
+  const [isBuildingDropdownOpen, setIsBuildingDropdownOpen] = useState(false);
   const dragItemIndexRef = useRef(null);
   const dragOverItemIndexRef = useRef(null);
   const touchDragDataRef = useRef(null);
+  const globalFloorOrderRef = useRef({});
   const [language, setLanguage] = useState(localStorage.getItem('language') || 'id');
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark';
@@ -316,7 +324,7 @@ export default function EditPage() {
     let maxY = mapSize.height || 1500;
 
     placedElements.forEach(el => {
-      if (el.floor === activeEditFloor) {
+      if (el.floor === activeEditFloor && el.building === activeEditBuilding) {
         const right = el.x + el.width;
         const bottom = el.y + el.height;
         if (right > maxX) maxX = right;
@@ -353,14 +361,19 @@ export default function EditPage() {
 
         const allElements = [];
         const uniqueFloors = new Set(["Lantai 1"]);
+        const uniqueBuildings = new Set(["Gedung A"]);
 
         roomsSnapshot.forEach((docSnap) => {
           const data = docSnap.data();
           if (data.floor && !data.floor.startsWith("submap_")) uniqueFloors.add(data.floor);
+          if (data.building) uniqueBuildings.add(data.building);
           allElements.push({
             id: docSnap.id,
             type: 'room',
             floor: data.floor || "Lantai 1",
+            building: data.building || "Gedung A",
+            is_connector: data.is_connector || false,
+            target_building: data.target_building || "",
             name: data.name || "Tanpa Nama",
             name_en: data.name_en || "",
             x: (data.grid_x || 0) * GRID_SIZE,
@@ -375,10 +388,14 @@ export default function EditPage() {
         kioskSnapshot.forEach((docSnap) => {
           const data = docSnap.data();
           if (data.floor && !data.floor.startsWith("submap_")) uniqueFloors.add(data.floor);
+          if (data.building) uniqueBuildings.add(data.building);
           allElements.push({
             id: docSnap.id,
             type: 'kiosk',
             floor: data.floor || "Lantai 1",
+            building: data.building || "Gedung A",
+            is_connector: data.is_connector || false,
+            target_building: data.target_building || "",
             name: data.name || "Kiosk",
             name_en: data.name_en || "",
             x: (data.grid_x || 0) * GRID_SIZE,
@@ -395,28 +412,74 @@ export default function EditPage() {
         setHistory([allElements]);
         setHistoryStep(0);
 
-        let savedFloorOrder = [];
+        let savedFloorOrder = {};
         if (mapConfigSnap.exists() && mapConfigSnap.data().floorOrder) {
           savedFloorOrder = mapConfigSnap.data().floorOrder;
         }
 
-        const sortedFloors = Array.from(uniqueFloors).sort((a, b) => {
-          const idxA = savedFloorOrder.indexOf(a);
-          const idxB = savedFloorOrder.indexOf(b);
+        const finalBuildings = Array.from(uniqueBuildings).sort();
+        setBuildings(finalBuildings);
+        
+        // Initial building and floors calculation
+        const initialBuilding = finalBuildings[0] || "Gedung A";
+        setActiveEditBuilding(initialBuilding);
+
+        if (Array.isArray(savedFloorOrder)) {
+          savedFloorOrder = { [initialBuilding]: savedFloorOrder };
+        }
+        globalFloorOrderRef.current = savedFloorOrder;
+        
+        const bFloors = new Set();
+        allElements.forEach(el => {
+          if (el.building === initialBuilding && el.floor && !el.floor.startsWith("submap_")) {
+            bFloors.add(el.floor);
+          }
+        });
+        
+        let initialFloors = Array.from(bFloors);
+        if (initialFloors.length === 0) initialFloors = ["Lantai 1"];
+        else initialFloors.sort((a, b) => {
+          const orderArray = savedFloorOrder[initialBuilding] || [];
+          const idxA = orderArray.indexOf(a);
+          const idxB = orderArray.indexOf(b);
           if (idxA !== -1 && idxB !== -1) return idxA - idxB;
           if (idxA !== -1) return -1;
           if (idxB !== -1) return 1;
           return a.localeCompare(b);
         });
-
-        setFloors(sortedFloors);
-        setActiveEditFloor(sortedFloors[0] || "Lantai 1");
+        
+        setFloors(initialFloors);
+        setActiveEditFloor(initialFloors[0] || "Lantai 1");
       } catch (error) {
         console.error("Gagal mengambil data:", error);
       }
     };
     fetchAllData();
   }, []);
+
+  const handleBuildingChange = (newBuilding, currentElements = placedElements) => {
+    setActiveEditBuilding(newBuilding);
+    const bFloors = new Set();
+    currentElements.forEach(el => {
+      if (el.building === newBuilding && el.floor && !el.floor.startsWith("submap_")) {
+        bFloors.add(el.floor);
+      }
+    });
+    let newFloors = Array.from(bFloors);
+    if (newFloors.length === 0) newFloors = ["Lantai 1"];
+    else newFloors.sort((a, b) => {
+      const orderArray = globalFloorOrderRef.current[newBuilding] || [];
+      const idxA = orderArray.indexOf(a);
+      const idxB = orderArray.indexOf(b);
+      if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+      if (idxA !== -1) return -1;
+      if (idxB !== -1) return 1;
+      return a.localeCompare(b);
+    });
+    
+    setFloors(newFloors);
+    setActiveEditFloor(newFloors[0]);
+  };
 
   useEffect(() => {
     const updateMapSize = () => {
@@ -516,14 +579,19 @@ export default function EditPage() {
         setCustomPrompt(prev => ({ ...prev, isOpen: false }));
         if (newFloor && newFloor.trim() !== "") {
           const formattedFloor = newFloor.trim();
-          if (floors.includes(formattedFloor)) {
+          const currentOrder = globalFloorOrderRef.current[activeEditBuilding] || [];
+          if (!floors.includes(formattedFloor) && !currentOrder.includes(formattedFloor)) {
+            const newFloorsList = [...floors, formattedFloor];
+            setFloors(newFloorsList);
+            globalFloorOrderRef.current = {
+              ...globalFloorOrderRef.current,
+              [activeEditBuilding]: [...currentOrder, formattedFloor]
+            };
+            setActiveEditFloor(formattedFloor);
+            setSelectedId(null);
+          } else {
             showAlert(getText('alert_floor_exists'));
-            return;
           }
-          const newFloorsList = [...floors, formattedFloor];
-          setFloors(newFloorsList);
-          setActiveEditFloor(formattedFloor);
-          setSelectedId(null);
         }
       }
     });
@@ -549,8 +617,15 @@ export default function EditPage() {
         setPlacedElements(newElements);
         saveHistory(newElements);
 
-        const remainingFloors = floors.filter(f => f !== activeEditFloor);
+        const floorToDelete = activeEditFloor;
+        const remainingFloors = floors.filter(f => f !== floorToDelete);
         setFloors(remainingFloors);
+        const currentOrder = globalFloorOrderRef.current[activeEditBuilding] || [];
+        globalFloorOrderRef.current = {
+          ...globalFloorOrderRef.current,
+          [activeEditBuilding]: currentOrder.filter(f => f !== floorToDelete)
+        };
+        
         setActiveEditFloor(remainingFloors[0]);
         setSelectedId(null);
       }
@@ -581,9 +656,16 @@ export default function EditPage() {
           setPlacedElements(newElements);
           saveHistory(newElements);
 
-          const newFloorsList = floors.map(f => f === activeEditFloor ? formattedFloor : f);
-          setFloors(newFloorsList);
-          setActiveEditFloor(formattedFloor);
+          const currentOrder = globalFloorOrderRef.current[activeEditBuilding] || [];
+          if (!floors.includes(formattedFloor) && !currentOrder.includes(formattedFloor)) {
+            const newFloorsList = floors.map(f => f === activeEditFloor ? formattedFloor : f);
+            setFloors(newFloorsList);
+            globalFloorOrderRef.current = {
+              ...globalFloorOrderRef.current,
+              [activeEditBuilding]: currentOrder.map(f => f === activeEditFloor ? formattedFloor : f)
+            };
+            setActiveEditFloor(formattedFloor);
+          }
         }
       }
     });
@@ -602,6 +684,14 @@ export default function EditPage() {
     newFloors.splice(hoverIndex, 0, draggedItem);
 
     setFloors(newFloors);
+    
+    // Update global floor order while maintaining relative order
+    const currentOrder = globalFloorOrderRef.current[activeEditBuilding] || [];
+    const otherFloors = currentOrder.filter(f => !newFloors.includes(f));
+    globalFloorOrderRef.current = {
+      ...globalFloorOrderRef.current,
+      [activeEditBuilding]: [...otherFloors, ...newFloors]
+    };
 
     dragItemIndexRef.current = null;
     dragOverItemIndexRef.current = null;
@@ -621,16 +711,24 @@ export default function EditPage() {
       if (dragData.type === "new-kiosk" || dragData.type === "new-entrance") {
         newId = generateNextKioskId();
         newElements.push({
-          id: newId, type: 'kiosk', floor: activeEditFloor,
+          id: newId, type: 'kiosk', floor: activeEditFloor, building: activeEditBuilding,
           x: snappedX, y: snappedY, width: GRID_SIZE * (dragData.defaultGridWidth || 2), height: GRID_SIZE * (dragData.defaultGridHeight || 2),
           name: dragData.defaultName,
         });
       } else if (dragData.type === "new-room") {
         newId = generateNextRoomId();
         newElements.push({
-          id: newId, type: 'room', floor: activeEditFloor,
+          id: newId, type: 'room', floor: activeEditFloor, building: activeEditBuilding,
           x: snappedX, y: snappedY, width: GRID_SIZE * (dragData.defaultGridWidth || 4), height: GRID_SIZE * (dragData.defaultGridHeight || 2),
           endpoints: dragData.endpoints, name: dragData.defaultName,
+        });
+      } else if (dragData.type === "new-connector") {
+        newId = generateNextRoomId();
+        newElements.push({
+          id: newId, type: 'room', floor: activeEditFloor, building: activeEditBuilding,
+          x: snappedX, y: snappedY, width: GRID_SIZE * (dragData.defaultGridWidth || 4), height: GRID_SIZE * (dragData.defaultGridHeight || 4),
+          endpoints: dragData.endpoints, name: dragData.defaultName,
+          is_connector: true, target_building: ""
         });
       }
 
@@ -724,11 +822,13 @@ export default function EditPage() {
             id: el.id.toString(),
             name: el.name || "Tanpa Nama",
             floor: el.floor || "Lantai 1",
+            building: el.building || "Gedung A",
             grid_x: Math.round(el.x / GRID_SIZE) || 0,
             grid_y: Math.round(el.y / GRID_SIZE) || 0,
             grid_width: Math.round(el.width / GRID_SIZE) || 1,
             grid_height: Math.round(el.height / GRID_SIZE) || 1,
-            ...((el.type === 'room' || el.type === 'kiosk') && { endpoints: el.endpoints || ['bottom'] })
+            ...((el.type === 'room' || el.type === 'kiosk') && { endpoints: el.endpoints || ['bottom'] }),
+            ...(el.is_connector && { is_connector: true, target_building: el.target_building || "" })
           };
           if (translations[el.name]) {
             if (typeof translations[el.name] === 'string') {
@@ -745,7 +845,7 @@ export default function EditPage() {
           batch.set(doc(db, col, el.id.toString()), docData, { merge: true });
         });
 
-        batch.set(doc(db, "Settings", "MapConfig"), { floorOrder: floors }, { merge: true });
+        batch.set(doc(db, "Settings", "MapConfig"), { floorOrder: globalFloorOrderRef.current }, { merge: true });
 
         await batch.commit();
         showAlert(getText('alert_save_success'), () => {
@@ -783,8 +883,8 @@ export default function EditPage() {
   };
 
   const activeFloorElements = useMemo(() => {
-    return placedElements.filter(el => el.floor === activeEditFloor);
-  }, [placedElements, activeEditFloor]);
+    return placedElements.filter(el => el.floor === activeEditFloor && (el.building || "Gedung A") === activeEditBuilding);
+  }, [placedElements, activeEditFloor, activeEditBuilding]);
 
   return (
     <div className="edit-page-container">
@@ -974,6 +1074,60 @@ export default function EditPage() {
         </main>
 
         <aside className="edit-page-right-panel">
+          <div className="edit-card" style={{ marginBottom: "15px" }}>
+            <h4 className="edit-card-title">
+              <span>🏢 {language === 'id' ? 'Gedung' : 'Building'}</span>
+              <span className="badge">{buildings.length}</span>
+            </h4>
+            <div className="custom-floor-dropdown" style={{ marginBottom: "10px" }}>
+              <div 
+                className="custom-dropdown-header"
+                onClick={() => setIsBuildingDropdownOpen(!isBuildingDropdownOpen)}
+              >
+                <span>{activeEditBuilding}</span>
+                <span className="dropdown-arrow">{isBuildingDropdownOpen ? '▲' : '▼'}</span>
+              </div>
+              
+              {isBuildingDropdownOpen && (
+                <div className="custom-dropdown-list">
+                  {buildings.map((b) => (
+                    <div 
+                      key={b} 
+                      className={`custom-dropdown-item ${activeEditBuilding === b ? 'active' : ''}`}
+                      onClick={() => {
+                        handleBuildingChange(b);
+                        setSelectedId(null);
+                        setIsBuildingDropdownOpen(false);
+                      }}
+                    >
+                      <span className="floor-name">{b}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="edit-btn-group">
+              <button onClick={() => {
+                const promptText = language === 'id' ? 'Masukkan nama gedung baru:' : 'Enter new building name:';
+                setCustomPrompt({
+                  isOpen: true,
+                  title: promptText,
+                  defaultValue: "",
+                  onSubmit: (val) => {
+                    setCustomPrompt(prev => ({ ...prev, isOpen: false }));
+                    if (val && val.trim() !== "") {
+                      const newBuilding = val.trim();
+                      if (!buildings.includes(newBuilding)) {
+                        setBuildings([...buildings, newBuilding].sort());
+                        handleBuildingChange(newBuilding);
+                      }
+                    }
+                  }
+                });
+              }} className="edit-btn btn-success">{language === 'id' ? 'Tambah Gedung' : 'Add Building'}</button>
+            </div>
+          </div>
+
           <div className="edit-card">
             <h4 className="edit-card-title">
               <span>🏢 {getText('floor_management')}</span>
@@ -1135,6 +1289,22 @@ export default function EditPage() {
               return (
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
 
+                  {room.is_connector && (
+                    <div className="endpoint-controls edit-card-inner">
+                      <h4 className="endpoint-title">{language === 'id' ? 'Menuju Gedung' : 'Target Building'}</h4>
+                      <select 
+                        value={room.target_building || ""}
+                        onChange={(e) => updateRoom({ target_building: e.target.value })}
+                        style={{ width: "100%", padding: "5px", borderRadius: "5px", border: "1px solid #ccc", color: "black", marginTop: "5px" }}
+                      >
+                        <option value="" disabled>{language === 'id' ? 'Pilih Gedung Tujuan' : 'Select Target Building'}</option>
+                        {buildings.filter(b => b !== activeEditBuilding).map(b => (
+                          <option key={b} value={b}>{b}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
                   <div className="endpoint-controls edit-card-inner">
                     <h4 className="endpoint-title">{getText('active_endpoint_side')}</h4>
                     <p className="endpoint-hint">{getText('change_manual_hint')}</p>
@@ -1219,7 +1389,7 @@ export default function EditPage() {
                   onClick={() => {
                     const newId = generateNextRoomId();
                     const newElements = [...placedElements, {
-                      id: newId, type: 'room', floor: activeEditFloor,
+                      id: newId, type: 'room', floor: activeEditFloor, building: activeEditBuilding,
                       x: 200, y: 200, width: GRID_SIZE * 4, height: GRID_SIZE * 4,
                       name: preset.name, fill: "#e0e0e0", stroke: "#9e9e9e",
                       endpoints: preset.endpoints
@@ -1237,7 +1407,7 @@ export default function EditPage() {
             <div style={{ margin: "10px 0", borderTop: "1px solid var(--border)" }}></div>
 
             <h5 style={{ margin: "0 0 10px 0", fontSize: "12px", color: "var(--text-main)", fontWeight: "700" }}>{language === 'id' ? 'Lainnya' : 'Others'}</h5>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px" }}>
               <div
                 draggable
                 style={{ touchAction: 'none' }}
@@ -1273,7 +1443,7 @@ export default function EditPage() {
                 onClick={() => {
                   const newId = generateNextKioskId();
                   const newElements = [...placedElements, {
-                    id: newId, type: 'kiosk', floor: activeEditFloor,
+                    id: newId, type: 'kiosk', floor: activeEditFloor, building: activeEditBuilding,
                     x: 200, y: 200, width: GRID_SIZE * 2, height: GRID_SIZE * 2,
                     name: "Kios Baru"
                   }];
@@ -1321,7 +1491,7 @@ export default function EditPage() {
                 onClick={() => {
                   const newId = generateNextKioskId();
                   const newElements = [...placedElements, {
-                    id: newId, type: 'kiosk', floor: activeEditFloor,
+                    id: newId, type: 'kiosk', floor: activeEditFloor, building: activeEditBuilding,
                     x: 200, y: 240, width: GRID_SIZE * 2, height: GRID_SIZE * 2,
                     name: language === 'id' ? "Pintu Masuk Utama" : "Main Entrance"
                   }];
@@ -1332,6 +1502,57 @@ export default function EditPage() {
               >
                 <div className="template-icon">🚪</div>
                 <p>{language === 'id' ? 'Pintu Masuk' : 'Entrance'}</p>
+              </div>
+
+              <div
+                draggable
+                style={{ touchAction: 'none' }}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("text/plain", JSON.stringify({
+                    type: "new-connector",
+                    defaultName: language === 'id' ? "Pintu Penghubung" : "Connector Door",
+                    defaultGridWidth: 4,
+                    defaultGridHeight: 4,
+                    endpoints: ["bottom"]
+                  }));
+                }}
+                onTouchStart={() => {
+                  touchDragDataRef.current = {
+                    type: "new-connector",
+                    defaultName: language === 'id' ? "Pintu Penghubung" : "Connector Door",
+                    defaultGridWidth: 4,
+                    defaultGridHeight: 4,
+                    endpoints: ["bottom"]
+                  };
+                }}
+                onTouchEnd={(e) => {
+                  if (!touchDragDataRef.current) return;
+                  const touch = e.changedTouches[0];
+                  const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                  const mapContainer = mapRef.current;
+                  if (mapContainer && mapContainer.contains(target)) {
+                    const mapRect = mapContainer.getBoundingClientRect();
+                    const clientX = touch.clientX - mapRect.left;
+                    const clientY = touch.clientY - mapRect.top;
+                    processDrop(clientX, clientY, touchDragDataRef.current);
+                  }
+                  touchDragDataRef.current = null;
+                }}
+                onClick={() => {
+                  const newId = generateNextRoomId();
+                  const newElements = [...placedElements, {
+                    id: newId, type: 'room', floor: activeEditFloor, building: activeEditBuilding,
+                    x: 200, y: 280, width: GRID_SIZE * 4, height: GRID_SIZE * 4,
+                    endpoints: ["bottom"], name: language === 'id' ? "Pintu Penghubung" : "Connector Door",
+                    is_connector: true, target_building: ""
+                  }];
+                  setPlacedElements(newElements);
+                  saveHistory(newElements);
+                }}
+                className="template-card template-connector"
+              >
+                <div className="template-icon">🌉</div>
+                <p>{language === 'id' ? 'Pintu Gedung' : 'Building Door'}</p>
               </div>
             </div>
           </div>

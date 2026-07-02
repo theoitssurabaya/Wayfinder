@@ -52,7 +52,7 @@ function getPointAtDistance(pathPoints, distance) {
   return { x: lastX, y: lastY, angle: 0 };
 }
 
-export default function SharedMap({ path = [], activePath = null, activeStepIndex = 0, activeStepText = "", currentFloor = "Lantai 1", selectedKiosk, onRoomClick, showGrid = true, showBorder = false, language = "id", isDarkMode = false }) {
+export default function SharedMap({ path = [], activePath = null, activeStepIndex = 0, activeStepText = "", currentFloor = "Lantai 1", currentBuilding = "Gedung A", selectedKiosk, onRoomClick, showGrid = true, showBorder = false, language = "id", isDarkMode = false }) {
   const [rooms, setRooms] = useState([]);
   const [kiosks, setKiosks] = useState([]);
   const [mapSize, setMapSize] = useState({ width: 0, height: 0 });
@@ -71,7 +71,7 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
     let maxY = -Infinity;
 
     rooms.forEach((room) => {
-      if (room.floor === currentFloor) {
+      if (room.floor === currentFloor && (room.building || "Gedung A") === currentBuilding) {
         minX = Math.min(minX, room.x);
         minY = Math.min(minY, room.y);
         maxX = Math.max(maxX, room.x + room.width);
@@ -80,7 +80,7 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
     });
 
     kiosks.forEach((kiosk) => {
-      if (kiosk.floor === currentFloor) {
+      if (kiosk.floor === currentFloor && (kiosk.building || "Gedung A") === currentBuilding) {
         minX = Math.min(minX, kiosk.x);
         minY = Math.min(minY, kiosk.y);
         maxX = Math.max(maxX, kiosk.x + kiosk.width);
@@ -99,7 +99,7 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
       width: (maxX - minX) + 2 * padding,
       height: (maxY - minY) + 2 * padding
     };
-  }, [rooms, kiosks, currentFloor]);
+  }, [rooms, kiosks, currentFloor, currentBuilding]);
 
   const scaleAndOffset = useMemo(() => {
     if (!mapBounds || mapSize.width === 0 || mapSize.height === 0) {
@@ -124,7 +124,7 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
     let maxY = mapSize.height || 1500;
 
     rooms.forEach(room => {
-      if (room.floor === currentFloor) {
+      if (room.floor === currentFloor && (room.building || "Gedung A") === currentBuilding) {
         const right = room.x + room.width;
         const bottom = room.y + room.height;
         if (right > maxX) maxX = right;
@@ -133,7 +133,7 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
     });
 
     kiosks.forEach(kiosk => {
-      if (kiosk.floor === currentFloor) {
+      if (kiosk.floor === currentFloor && (kiosk.building || "Gedung A") === currentBuilding) {
         const right = kiosk.x + kiosk.width;
         const bottom = kiosk.y + kiosk.height;
         if (right > maxX) maxX = right;
@@ -145,7 +145,7 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
       width: maxX + 1000,
       height: maxY + 1000
     };
-  }, [rooms, kiosks, currentFloor, mapSize.width, mapSize.height]);
+  }, [rooms, kiosks, currentFloor, mapSize.width, mapSize.height, currentBuilding]);
 
   useEffect(() => {
     const updateSize = () => {
@@ -170,6 +170,7 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
         loadedRooms.push({
           id: docSnap.id,
           floor: data.floor || "Lantai 1",
+          building: data.building || "Gedung A",
           name: data.name || "Tanpa Nama",
           name_en: data.name_en,
           x: (data.grid_x || 0) * GRID_SIZE,
@@ -177,6 +178,8 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
           width: (data.grid_width || 1) * GRID_SIZE,
           height: (data.grid_height || 1) * GRID_SIZE,
           endpoints: data.endpoints && data.endpoints.length > 0 ? data.endpoints : ['bottom'],
+          is_connector: data.is_connector || false,
+          target_building: data.target_building || "",
         });
       });
       setRooms(loadedRooms);
@@ -194,12 +197,15 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
           id: docSnap.id,
           type: "kiosk",
           floor: data.floor || "Lantai 1",
+          building: data.building || "Gedung A",
           name: data.name || "Kiosk",
           name_en: data.name_en,
           x: (data.grid_x || 0) * GRID_SIZE,
           y: (data.grid_y || 0) * GRID_SIZE,
           width: (data.grid_width || 2) * GRID_SIZE,
           height: (data.grid_height || 2) * GRID_SIZE,
+          is_connector: data.is_connector || false,
+          target_building: data.target_building || "",
         });
       });
       setKiosks(loadedKiosks);
@@ -209,21 +215,21 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
   }, []);
 
   const pathPoints = useMemo(() => {
-    const filteredPath = path.filter(p => !p.floor || p.floor === currentFloor);
+    const filteredPath = path.filter(p => (!p.floor || p.floor === currentFloor) && (!p.building || p.building === currentBuilding));
     return filteredPath.flatMap((point) => [
       (point.x || 0) * GRID_SIZE + GRID_SIZE / 2,
       (point.y || 0) * GRID_SIZE + GRID_SIZE / 2
     ]);
-  }, [path, currentFloor]);
+  }, [path, currentFloor, currentBuilding]);
 
   const activePathPoints = useMemo(() => {
     if (!activePath) return pathPoints;
-    const filteredPath = activePath.filter(p => !p.floor || p.floor === currentFloor);
+    const filteredPath = activePath.filter(p => (!p.floor || p.floor === currentFloor) && (!p.building || p.building === currentBuilding));
     return filteredPath.flatMap((point) => [
       (point.x || 0) * GRID_SIZE + GRID_SIZE / 2,
       (point.y || 0) * GRID_SIZE + GRID_SIZE / 2
     ]);
-  }, [activePath, pathPoints, currentFloor]);
+  }, [activePath, pathPoints, currentFloor, currentBuilding]);
 
   useEffect(() => {
     if (!lineRef.current) return;
@@ -345,8 +351,8 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
     return lines;
   };
 
-  const currentFloorRooms = useMemo(() => rooms.filter(room => room.floor === currentFloor), [rooms, currentFloor]);
-  const currentFloorKiosks = useMemo(() => kiosks.filter(kiosk => kiosk.floor === currentFloor), [kiosks, currentFloor]);
+  const currentFloorRooms = useMemo(() => rooms.filter(room => room.floor === currentFloor && (room.building || "Gedung A") === currentBuilding), [rooms, currentFloor, currentBuilding]);
+  const currentFloorKiosks = useMemo(() => kiosks.filter(kiosk => kiosk.floor === currentFloor && (kiosk.building || "Gedung A") === currentBuilding), [kiosks, currentFloor, currentBuilding]);
 
   return (
     <div ref={containerRef} style={{ width: "100%", height: "100%", background: isDarkMode ? "#0f172a" : "#f5f5f5" }}>
@@ -379,7 +385,11 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
               {/* Render Ruangan bersih senada background (Tanpa Endpoint) */}
               {currentFloorRooms
                 .map((room) => {
-                  const textContent = translateName(room.name || "Tanpa Nama", language, room.name_en);
+                  let textContent = translateName(room.name || "Tanpa Nama", language, room.name_en);
+                  if (room.is_connector && room.target_building) {
+                    const translatedTarget = translateName(room.target_building, language);
+                    textContent = language === 'id' ? `Pintu ke ${translatedTarget}` : `Door to ${translatedTarget}`;
+                  }
                   const longestWordLen = Math.max(...textContent.split(' ').map(w => w.length), 1);
                   const actualUsableWidth = Math.max(10, room.width - 12);
 
@@ -414,7 +424,11 @@ export default function SharedMap({ path = [], activePath = null, activeStepInde
               {/* Render Kiosks (biru) dan Pintu Masuk (hijau) */}
               {currentFloorKiosks
                 .map((kiosk) => {
-                  const textContent = translateName(kiosk.name || "Kiosk", language, kiosk.name_en);
+                  let textContent = translateName(kiosk.name || "Kiosk", language, kiosk.name_en);
+                  if (kiosk.is_connector && kiosk.target_building) {
+                    const translatedTarget = translateName(kiosk.target_building, language);
+                    textContent = language === 'id' ? `Pintu ke ${translatedTarget}` : `Door to ${translatedTarget}`;
+                  }
                   const isPintu = kiosk.name?.toLowerCase().includes('pintu');
                   const fillCol = isPintu ? "#4CAF50" : "#2196F3";
                   const strokeCol = isPintu ? "#2E7D32" : "#0D47A1";
